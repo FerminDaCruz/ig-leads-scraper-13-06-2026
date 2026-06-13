@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import ws from 'ws'
 import 'dotenv/config'
 
 function getSupabase() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    realtime: { transport: ws },
+  })
 }
 
 export async function getNextSearchPairs(limit: number = 3) {
