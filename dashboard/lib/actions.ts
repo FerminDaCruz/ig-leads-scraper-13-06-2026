@@ -5,7 +5,10 @@ import { getSupabase } from './supabase'
 
 export async function marcarCalificado(id: number, valor: boolean) {
   const supabase = getSupabase()
-  await supabase.from('leads').update({ calificado: valor }).eq('id', id)
+  await supabase
+    .from('leads')
+    .update({ calificado: valor, qualified_at: new Date().toISOString() })
+    .eq('id', id)
   revalidatePath('/')
 }
 

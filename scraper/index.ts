@@ -3,7 +3,7 @@ import { createBrowser, randomDelay } from './browser'
 import { searchGoogle } from './search'
 import { getNextSearchPairs, saveSearchResults } from './db'
 
-const SEARCHES_PER_RUN = 3
+const SEARCHES_PER_RUN = 5
 
 async function main() {
   console.log('🚀 Iniciando scraper de leads de Instagram')

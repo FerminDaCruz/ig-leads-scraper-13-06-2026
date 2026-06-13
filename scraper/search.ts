@@ -32,7 +32,7 @@ export async function searchGoogle(
 ): Promise<{ url: string; username: string }[]> {
   const page = await context.newPage()
   const query = `site:instagram.com "${niche}" "${location}" -inurl:/p/ -inurl:/reel/ -inurl:/tv/`
-  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=10&hl=es`
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=20&hl=es`
 
   try {
     console.log(`  Buscando: "${niche}" + "${location}"`)

@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabase'
 import { ThemeToggle } from './ThemeToggle'
 import { SiInstagram } from 'react-icons/si'
-import { FiCheckSquare, FiSend, FiClock } from 'react-icons/fi'
+import { FiCheckSquare, FiSend, FiClock, FiBarChart2 } from 'react-icons/fi'
 
-export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'historial' }) {
+export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'historial' | 'stats' }) {
   const supabase = getSupabase()
 
   const [pendientesRes, contactarRes] = await Promise.all([
@@ -23,6 +23,7 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
     { href: '/', label: 'Calificar', id: 'calificar', count: pendientes, icon: FiCheckSquare },
     { href: '/contactar', label: 'Contactar', id: 'contactar', count: listos, icon: FiSend },
     { href: '/historial', label: 'Historial', id: 'historial', count: null, icon: FiClock },
+    { href: '/stats', label: 'Reporte', id: 'stats', count: null, icon: FiBarChart2 },
   ]
 
   return (

@@ -15,4 +15,5 @@ export interface Lead {
   contactado: boolean
   first_seen_at: string
   last_seen_at: string
+  qualified_at: string | null
 }

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "scrape": "tsx scraper/index.ts",
-    "import": "tsx scripts/import-csv.ts"
+    "import": "tsx scripts/import-csv.ts",
+    "report": "tsx scripts/weekly-report.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",

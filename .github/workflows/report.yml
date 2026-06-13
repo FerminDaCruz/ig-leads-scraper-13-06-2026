@@ -1,0 +1,29 @@
+name: Reporte Semanal
+
+on:
+  schedule:
+    - cron: '0 12 * * 0'  # Domingos a las 9 AM Argentina (12:00 UTC)
+  workflow_dispatch:        # Trigger manual
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generar reporte
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: npm run report
