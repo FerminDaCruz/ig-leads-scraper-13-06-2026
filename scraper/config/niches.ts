@@ -1,0 +1,18 @@
+export const NICHES = [
+  'alquiler turistico',
+  'cabaña',
+  'cabañas',
+  'complejo turistico',
+  'hotel boutique',
+  'hostel',
+  'glamping',
+  'posada',
+  'resort',
+  'departamentos temporarios',
+  'alquiler temporario',
+  'bungalows',
+  'lodge',
+  'eco lodge',
+  'estancia turistica',
+  'hospedaje',
+]
