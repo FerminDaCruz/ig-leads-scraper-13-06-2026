@@ -29,10 +29,11 @@ function EstadoBadge({ lead }: { lead: Lead }) {
 export default async function HistorialPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string; ubicacion?: string }>
+  searchParams: Promise<{ filtro?: string; ubicacion?: string; ocultar?: string | string[] }>
 }) {
-  const { filtro, ubicacion } = await searchParams
+  const { filtro, ubicacion, ocultar: ocultarRaw } = await searchParams
   const filtroActivo = (filtro as Filtro) || 'todos'
+  const ocultar = ocultarRaw ? (Array.isArray(ocultarRaw) ? ocultarRaw : [ocultarRaw]) : []
 
   const supabase = getSupabase()
   let query = supabase.from('leads').select('*').order('first_seen_at', { ascending: false })
@@ -43,6 +44,7 @@ export default async function HistorialPage({
   else if (filtroActivo === 'contactados') query = query.eq('contactado', true)
 
   if (ubicacion) query = query.ilike('ubicaciones', `%${ubicacion}%`)
+  for (const loc of ocultar) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
   const { data: leads } = await query.limit(500)
   const rows = (leads || []) as Lead[]
@@ -66,6 +68,7 @@ export default async function HistorialPage({
             const params = new URLSearchParams()
             params.set('filtro', f.id)
             if (ubicacion) params.set('ubicacion', ubicacion)
+            ocultar.forEach((v) => params.append('ocultar', v))
             return (
               <Link
                 key={f.id}

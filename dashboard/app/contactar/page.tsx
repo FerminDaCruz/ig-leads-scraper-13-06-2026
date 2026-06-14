@@ -9,9 +9,11 @@ import { Suspense } from 'react'
 export default async function ContactarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string }>
+  searchParams: Promise<{ ubicacion?: string; ocultar?: string | string[] }>
 }) {
-  const { ubicacion } = await searchParams
+  const params = await searchParams
+  const ubicacion = params.ubicacion || ''
+  const ocultar = params.ocultar ? (Array.isArray(params.ocultar) ? params.ocultar : [params.ocultar]) : []
   const supabase = getSupabase()
 
   let query = supabase
@@ -22,6 +24,7 @@ export default async function ContactarPage({
     .order('veces_encontrado', { ascending: false })
 
   if (ubicacion) query = query.ilike('ubicaciones', `%${ubicacion}%`)
+  for (const loc of ocultar) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
   const { data: leads } = await query
   const rows = (leads || []) as Lead[]
