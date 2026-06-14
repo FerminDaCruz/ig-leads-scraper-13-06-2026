@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { marcarCalificado, marcarContactado } from '@/lib/actions'
 import { FiCheck, FiX, FiSend } from 'react-icons/fi'
 
 export function CalificarButtons({ leadId }: { leadId: number }) {
   const [done, setDone] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const router = useRouter()
 
   if (done) return <span className="text-[#6b7280] text-sm italic">Guardado</span>
 
@@ -16,7 +14,6 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
     setDone(true)
     startTransition(async () => {
       await marcarCalificado(leadId, valor)
-      router.refresh()
     })
   }
 
@@ -45,7 +42,6 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
 export function ContactarButton({ leadId }: { leadId: number }) {
   const [done, setDone] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const router = useRouter()
 
   if (done) return <span className="text-[#6b7280] text-sm italic">Contactado</span>
 
@@ -53,7 +49,6 @@ export function ContactarButton({ leadId }: { leadId: number }) {
     setDone(true)
     startTransition(async () => {
       await marcarContactado(leadId)
-      router.refresh()
     })
   }
 
