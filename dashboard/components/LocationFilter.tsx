@@ -4,34 +4,16 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { FiMapPin, FiEyeOff, FiX } from 'react-icons/fi'
 
 const LOCATIONS = [
-  'Argentina',
-  'Bariloche',
-  'Buenos Aires',
-  'CABA',
-  'Cafayate',
-  'Cordoba',
-  'El Bolson',
-  'El Calafate',
-  'Las Grutas',
-  'Mar del Plata',
-  'Mendoza',
-  'Miramar',
-  'Monte Hermoso',
-  'Necochea',
-  'Pinamar',
-  'Puerto Iguazu',
-  'Puerto Madryn',
-  'Salta',
-  'San Bernardo',
-  'San Martin de los Andes',
-  'San Rafael',
-  'Tandil',
-  'Tilcara',
-  'Ushuaia',
-  'Villa Carlos Paz',
-  'Villa Gesell',
-  'Villa La Angostura',
+  'Argentina', 'Bariloche', 'Buenos Aires', 'CABA', 'Cafayate', 'Cordoba',
+  'El Bolson', 'El Calafate', 'Las Grutas', 'Mar del Plata', 'Mendoza',
+  'Miramar', 'Monte Hermoso', 'Necochea', 'Pinamar', 'Puerto Iguazu',
+  'Puerto Madryn', 'Salta', 'San Bernardo', 'San Martin de los Andes',
+  'San Rafael', 'Tandil', 'Tilcara', 'Ushuaia', 'Villa Carlos Paz',
+  'Villa Gesell', 'Villa La Angostura',
 ]
+
+const selectClass =
+  'py-2 text-sm rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream appearance-none focus:outline-none focus:ring-2 focus:ring-brand border-surface dark:border-navy-border'
 
 export function LocationFilter() {
   const router = useRouter()
@@ -43,23 +25,20 @@ export function LocationFilter() {
 
   const buildParams = (overrides: { ubicacion?: string; ocultar?: string[] }) => {
     const params = new URLSearchParams()
-    const newUbicacion = overrides.ubicacion !== undefined ? overrides.ubicacion : ubicacion
-    const newOcultar = overrides.ocultar !== undefined ? overrides.ocultar : ocultar
-    if (newUbicacion) params.set('ubicacion', newUbicacion)
-    newOcultar.forEach((v) => params.append('ocultar', v))
+    const u = overrides.ubicacion !== undefined ? overrides.ubicacion : ubicacion
+    const o = overrides.ocultar !== undefined ? overrides.ocultar : ocultar
+    if (u) params.set('ubicacion', u)
+    o.forEach((v) => params.append('ocultar', v))
     return params.toString()
   }
 
-  const setUbicacion = (value: string) =>
-    router.push(`${pathname}?${buildParams({ ubicacion: value })}`)
-
-  const addOcultar = (value: string) => {
-    if (ocultar.includes(value) || value === ubicacion) return
-    router.push(`${pathname}?${buildParams({ ocultar: [...ocultar, value] })}`)
+  const setUbicacion = (v: string) => router.push(`${pathname}?${buildParams({ ubicacion: v })}`)
+  const addOcultar = (v: string) => {
+    if (!v || ocultar.includes(v)) return
+    router.push(`${pathname}?${buildParams({ ocultar: [...ocultar, v] })}`)
   }
-
-  const removeOcultar = (value: string) =>
-    router.push(`${pathname}?${buildParams({ ocultar: ocultar.filter((v) => v !== value) })}`)
+  const removeOcultar = (v: string) =>
+    router.push(`${pathname}?${buildParams({ ocultar: ocultar.filter((x) => x !== v) })}`)
 
   const availableToHide = LOCATIONS.filter((l) => !ocultar.includes(l))
 
@@ -67,14 +46,14 @@ export function LocationFilter() {
     <div className="flex flex-wrap items-center gap-2">
       {/* Filtrar por ubicación */}
       <div className="relative flex items-center">
-        <FiMapPin size={14} className="absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
+        <FiMapPin size={14} className="absolute left-3 text-[#6b7280] pointer-events-none" />
         <select
           value={ubicacion}
           onChange={(e) => setUbicacion(e.target.value)}
-          className="pl-8 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className={`${selectClass} pl-8 pr-3`}
         >
           <option value="">Todas las ubicaciones</option>
-          {LOCATIONS.filter((l) => !ocultar.includes(l)).map((loc) => (
+          {availableToHide.map((loc) => (
             <option key={loc} value={loc}>{loc}</option>
           ))}
         </select>
@@ -83,20 +62,19 @@ export function LocationFilter() {
       {ubicacion && (
         <button
           onClick={() => setUbicacion('')}
-          className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-brand/20 text-navy dark:text-brand hover:bg-brand/30 transition-colors"
         >
-          <FiX size={12} />
-          {ubicacion}
+          <FiX size={12} /> {ubicacion}
         </button>
       )}
 
       {/* Ocultar ubicación */}
       <div className="relative flex items-center">
-        <FiEyeOff size={14} className="absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
+        <FiEyeOff size={14} className="absolute left-3 text-[#6b7280] pointer-events-none" />
         <select
           value=""
-          onChange={(e) => { if (e.target.value) addOcultar(e.target.value) }}
-          className="pl-8 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-400"
+          onChange={(e) => addOcultar(e.target.value)}
+          className={`${selectClass} pl-8 pr-3`}
         >
           <option value="">Ocultar ubicación...</option>
           {availableToHide.map((loc) => (
@@ -105,17 +83,14 @@ export function LocationFilter() {
         </select>
       </div>
 
-      {/* Chips de ubicaciones ocultas */}
       {ocultar.map((loc) => (
         <button
           key={loc}
           onClick={() => removeOcultar(loc)}
-          className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900 transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-navy/10 dark:bg-navy-border text-navy dark:text-cream/70 hover:bg-navy/20 dark:hover:bg-navy-card transition-colors"
           title={`Dejar de ocultar "${loc}"`}
         >
-          <FiEyeOff size={12} />
-          {loc}
-          <FiX size={11} />
+          <FiEyeOff size={12} /> {loc} <FiX size={11} />
         </button>
       ))}
     </div>

@@ -20,31 +20,32 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
   const listos = contactarRes.count ?? 0
 
   const tabs = [
-    { href: '/', label: 'Calificar', id: 'calificar', count: pendientes, icon: FiCheckSquare },
-    { href: '/contactar', label: 'Contactar', id: 'contactar', count: listos, icon: FiSend },
-    { href: '/historial', label: 'Historial', id: 'historial', count: null, icon: FiClock },
-    { href: '/stats', label: 'Reporte', id: 'stats', count: null, icon: FiBarChart2 },
+    { href: '/',          label: 'Calificar', id: 'calificar', count: pendientes, icon: FiCheckSquare },
+    { href: '/contactar', label: 'Contactar', id: 'contactar', count: listos,     icon: FiSend        },
+    { href: '/historial', label: 'Historial', id: 'historial', count: null,       icon: FiClock       },
+    { href: '/stats',     label: 'Reporte',   id: 'stats',     count: null,       icon: FiBarChart2   },
   ]
 
   return (
-    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <nav className="bg-navy">
       <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-3">
         <div className="flex items-center gap-2 mr-6">
-          <SiInstagram size={20} className="text-pink-500" />
-          <span className="text-gray-800 dark:text-white font-bold text-lg">IG Leads</span>
+          <SiInstagram size={20} className="text-brand" />
+          <span className="text-white font-bold text-lg">IG Leads</span>
         </div>
 
         <div className="flex gap-1 flex-1">
           {tabs.map((tab) => {
             const Icon = tab.icon
+            const isActive = active === tab.id
             return (
               <Link
                 key={tab.id}
                 href={tab.href}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  active === tab.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive
+                    ? 'bg-brand text-navy'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Icon size={15} />
@@ -52,9 +53,9 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
                 {tab.count !== null && (
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      active === tab.id
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
+                      isActive
+                        ? 'bg-navy/20 text-navy'
+                        : 'bg-white/15 text-white'
                     }`}
                   >
                     {tab.count}

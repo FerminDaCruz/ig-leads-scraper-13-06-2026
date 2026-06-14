@@ -35,8 +35,8 @@ export default async function ContactarPage({
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contactar</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+            <h1 className="text-2xl font-bold text-navy dark:text-cream">Contactar</h1>
+            <p className="text-[#6b7280] text-sm mt-1">
               {rows.length} leads calificados listos para contactar
             </p>
           </div>
@@ -46,7 +46,7 @@ export default async function ContactarPage({
         </div>
 
         {rows.length === 0 ? (
-          <div className="text-center py-20 text-gray-400 dark:text-gray-500">
+          <div className="text-center py-20 text-[#6b7280]">
             <p className="text-xl font-medium">
               {ubicacion ? `Sin leads en "${ubicacion}"` : 'No hay leads listos para contactar'}
             </p>
@@ -55,38 +55,30 @@ export default async function ContactarPage({
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-semibold">Usuario</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-semibold">Nicho</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-semibold">Ubicación</th>
-                  <th className="text-center px-4 py-3 text-gray-600 dark:text-gray-400 font-semibold">Veces</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-400 font-semibold">Acción</th>
+                <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
+                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Usuario</th>
+                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Nicho</th>
+                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Ubicación</th>
+                  <th className="text-center px-4 py-3 text-[#6b7280] font-semibold">Veces</th>
+                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Acción</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              <tbody className="divide-y divide-surface dark:divide-navy-border">
                 {rows.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <tr key={lead.id} className="hover:bg-cream dark:hover:bg-navy transition-colors">
                     <td className="px-4 py-3">
-                      <a
-                        href={lead.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium hover:underline"
-                      >
+                      <a href={lead.url} target="_blank" rel="noopener noreferrer"
+                        className="text-brand hover:text-cyan-300 font-medium hover:underline">
                         @{lead.username}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[180px] truncate">
-                      {lead.nichos || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">
-                      {lead.ubicaciones || '—'}
-                    </td>
+                    <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
+                    <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold">
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-[#6b7280] text-xs font-bold">
                         {lead.veces_encontrado}
                       </span>
                     </td>

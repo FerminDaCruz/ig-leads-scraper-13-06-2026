@@ -10,7 +10,7 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  if (done) return <span className="text-gray-400 dark:text-gray-500 text-sm italic">Guardado</span>
+  if (done) return <span className="text-[#6b7280] text-sm italic">Guardado</span>
 
   const handle = (valor: boolean) => {
     setDone(true)
@@ -47,7 +47,7 @@ export function ContactarButton({ leadId }: { leadId: number }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  if (done) return <span className="text-gray-400 dark:text-gray-500 text-sm italic">Contactado</span>
+  if (done) return <span className="text-[#6b7280] text-sm italic">Contactado</span>
 
   const handle = () => {
     setDone(true)
@@ -61,7 +61,7 @@ export function ContactarButton({ leadId }: { leadId: number }) {
     <button
       onClick={handle}
       disabled={isPending}
-      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg font-medium disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-cyan-300 text-navy text-sm rounded-lg font-medium disabled:opacity-50 transition-colors"
     >
       <FiSend size={13} />
       Contactado

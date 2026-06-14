@@ -15,7 +15,7 @@ export function CopyReport({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg font-medium transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-cyan-300 text-navy text-sm rounded-lg font-medium transition-colors"
     >
       {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
       {copied ? 'Copiado!' : 'Copiar reporte'}
