@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabase'
 import { ThemeToggle } from './ThemeToggle'
+import { LogoutButton } from './LogoutButton'
 import { SiInstagram } from 'react-icons/si'
 import { FiCheckSquare, FiSend, FiClock, FiBarChart2 } from 'react-icons/fi'
 
@@ -66,7 +67,10 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
           })}
         </div>
 
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <LogoutButton />
+        </div>
       </div>
     </nav>
   )
