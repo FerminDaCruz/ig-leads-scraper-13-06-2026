@@ -28,7 +28,7 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
   ]
 
   return (
-    <nav className="bg-navy">
+    <nav className="bg-navy border-b border-navy-border/60">
       <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-3">
         <div className="flex items-center gap-2 mr-6">
           <SiInstagram size={20} className="text-brand" />
@@ -43,7 +43,7 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
               <Link
                 key={tab.id}
                 href={tab.href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-[background-color,color] duration-150 ease-out ${
                   isActive
                     ? 'bg-brand text-navy'
                     : 'text-white/70 hover:text-white hover:bg-white/10'

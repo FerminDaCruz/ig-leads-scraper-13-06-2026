@@ -6,6 +6,7 @@ import { ContactarButton } from '@/components/LeadActions'
 import { CopyToSheets } from '@/components/CopyToSheets'
 import { LocationFilter } from '@/components/LocationFilter'
 import { Suspense } from 'react'
+import { FiSend } from 'react-icons/fi'
 
 export default async function ContactarPage({
   searchParams,
@@ -37,7 +38,7 @@ export default async function ContactarPage({
         <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-navy dark:text-cream">Contactar</h1>
-            <p className="text-[#6b7280] text-sm mt-1">
+            <p className="text-muted text-sm mt-1">
               {rows.length} leads calificados listos para contactar
             </p>
           </div>
@@ -47,12 +48,13 @@ export default async function ContactarPage({
         </div>
 
         {rows.length === 0 ? (
-          <div className="text-center py-20 text-[#6b7280]">
-            <p className="text-xl font-medium">
+          <div className="text-center py-24 text-muted">
+            <FiSend size={36} className="mx-auto mb-4 opacity-30" />
+            <p className="text-base font-semibold text-navy dark:text-cream/70">
               {ubicacion ? `Sin leads en "${ubicacion}"` : 'No hay leads listos para contactar'}
             </p>
             {!ubicacion && (
-              <p className="text-sm mt-2">Calificá más leads en el panel anterior</p>
+              <p className="text-sm mt-1">Calificá más leads en el panel anterior</p>
             )}
           </div>
         ) : (
@@ -60,11 +62,11 @@ export default async function ContactarPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Usuario</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Nicho</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Ubicación</th>
-                  <th className="text-center px-4 py-3 text-[#6b7280] font-semibold">Veces</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Acciones</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Nicho</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
+                  <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface dark:divide-navy-border">
@@ -79,7 +81,7 @@ export default async function ContactarPage({
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-[#6b7280] text-xs font-bold">
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
                         {lead.veces_encontrado}
                       </span>
                     </td>

@@ -9,7 +9,7 @@ export function LogoutButton() {
       <button
         type="submit"
         title="Cerrar sesión"
-        className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 active:scale-[0.97] transition-[transform,background-color,color] duration-150 ease-out"
       >
         <FiLogOut size={18} />
       </button>

@@ -46,7 +46,7 @@ export function LocationFilter() {
     <div className="flex flex-wrap items-center gap-2">
       {/* Filtrar por ubicación */}
       <div className="relative flex items-center">
-        <FiMapPin size={14} className="absolute left-3 text-[#6b7280] pointer-events-none" />
+        <FiMapPin size={14} className="absolute left-3 text-muted pointer-events-none" />
         <select
           value={ubicacion}
           onChange={(e) => setUbicacion(e.target.value)}
@@ -70,7 +70,7 @@ export function LocationFilter() {
 
       {/* Ocultar ubicación */}
       <div className="relative flex items-center">
-        <FiEyeOff size={14} className="absolute left-3 text-[#6b7280] pointer-events-none" />
+        <FiEyeOff size={14} className="absolute left-3 text-muted pointer-events-none" />
         <select
           value=""
           onChange={(e) => addOcultar(e.target.value)}

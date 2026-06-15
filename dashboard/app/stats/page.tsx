@@ -125,12 +125,12 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-navy dark:text-cream">Reporte Semanal</h1>
-            <p className="text-[#6b7280] text-sm mt-1">{fechaDesde} — {fechaHasta}</p>
+            <p className="text-muted text-sm mt-1">{fechaDesde} - {fechaHasta}</p>
           </div>
           <CopyReport text={reporteTexto} />
         </div>
 
-        {/* Stat cards — esta semana */}
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Esta semana</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: 'Búsquedas esta semana', value: searches.length },
@@ -138,14 +138,14 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
             { label: 'Calificados esta semana', value: qualifiedThisWeek },
             { label: '% calificación semanal', value: pct(qualifiedThisWeek, reviewedThisWeek) },
           ].map((card) => (
-            <div key={card.label} className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl p-4">
-              <p className="text-xs text-[#6b7280] mb-1">{card.label}</p>
+            <div key={card.label} className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl p-4 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <p className="text-xs text-muted mb-1">{card.label}</p>
               <p className="text-2xl font-bold text-navy dark:text-cream">{card.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Stat cards — totales */}
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Totales historicos</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total en DB', value: totalLeads },
@@ -153,8 +153,8 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
             { label: 'Calificados (total)', value: totalCalificados },
             { label: 'Contactados (total)', value: totalContactados },
           ].map((card) => (
-            <div key={card.label} className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl p-4">
-              <p className="text-xs text-[#6b7280] mb-1">{card.label}</p>
+            <div key={card.label} className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl p-4 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <p className="text-xs text-muted mb-1">{card.label}</p>
               <p className="text-2xl font-bold text-navy dark:text-cream">{card.value}</p>
             </div>
           ))}
@@ -165,22 +165,22 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
           <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface dark:border-navy-border">
               <h2 className="font-semibold text-navy dark:text-cream text-sm">Mejores nichos</h2>
-              <p className="text-xs text-[#6b7280]">Por % de calificación (mín. 3 leads)</p>
+              <p className="text-xs text-muted">Por % de calificación (mín. 3 leads)</p>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                  <th className="text-left px-4 py-2 text-[#6b7280] font-medium text-xs">Nicho</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Total</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Calif.</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">%</th>
+                  <th className="text-left px-4 py-2 text-muted font-medium text-xs">Nicho</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">Total</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">Calif.</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">%</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface dark:divide-navy-border">
                 {nichoStats.map((s) => (
                   <tr key={s.name} className="hover:bg-cream dark:hover:bg-navy transition-colors">
                     <td className="px-4 py-2 text-navy dark:text-cream/80 truncate max-w-[140px]">{s.name}</td>
-                    <td className="px-4 py-2 text-center text-[#6b7280]">{s.total}</td>
+                    <td className="px-4 py-2 text-center text-muted">{s.total}</td>
                     <td className="px-4 py-2 text-center text-green-600 dark:text-green-400 font-medium">{s.calificados}</td>
                     <td className="px-4 py-2 text-center">
                       <span className="px-2 py-0.5 rounded-full bg-brand/20 text-navy dark:text-brand text-xs font-bold">{s.pct}%</span>
@@ -188,7 +188,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
                   </tr>
                 ))}
                 {nichoStats.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-[#6b7280]">Sin datos suficientes</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Sin datos suficientes</td></tr>
                 )}
               </tbody>
             </table>
@@ -198,22 +198,22 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
           <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-surface dark:border-navy-border">
               <h2 className="font-semibold text-navy dark:text-cream text-sm">Mejores ubicaciones</h2>
-              <p className="text-xs text-[#6b7280]">Por % de calificación (mín. 3 leads)</p>
+              <p className="text-xs text-muted">Por % de calificación (mín. 3 leads)</p>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                  <th className="text-left px-4 py-2 text-[#6b7280] font-medium text-xs">Ubicación</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Total</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Calif.</th>
-                  <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">%</th>
+                  <th className="text-left px-4 py-2 text-muted font-medium text-xs">Ubicación</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">Total</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">Calif.</th>
+                  <th className="text-center px-4 py-2 text-muted font-medium text-xs">%</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface dark:divide-navy-border">
                 {ubicacionStats.map((s) => (
                   <tr key={s.name} className="hover:bg-cream dark:hover:bg-navy transition-colors">
                     <td className="px-4 py-2 text-navy dark:text-cream/80 truncate max-w-[140px]">{s.name}</td>
-                    <td className="px-4 py-2 text-center text-[#6b7280]">{s.total}</td>
+                    <td className="px-4 py-2 text-center text-muted">{s.total}</td>
                     <td className="px-4 py-2 text-center text-green-600 dark:text-green-400 font-medium">{s.calificados}</td>
                     <td className="px-4 py-2 text-center">
                       <span className="px-2 py-0.5 rounded-full bg-brand/20 text-navy dark:text-brand text-xs font-bold">{s.pct}%</span>
@@ -221,7 +221,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
                   </tr>
                 ))}
                 {ubicacionStats.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-[#6b7280]">Sin datos suficientes</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-muted">Sin datos suficientes</td></tr>
                 )}
               </tbody>
             </table>
@@ -236,10 +236,10 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                <th className="text-left px-4 py-2 text-[#6b7280] font-medium text-xs">Nicho</th>
-                <th className="text-left px-4 py-2 text-[#6b7280] font-medium text-xs">Ubicación</th>
-                <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Total</th>
-                <th className="text-center px-4 py-2 text-[#6b7280] font-medium text-xs">Nuevos</th>
+                <th className="text-left px-4 py-2 text-muted font-medium text-xs">Nicho</th>
+                <th className="text-left px-4 py-2 text-muted font-medium text-xs">Ubicación</th>
+                <th className="text-center px-4 py-2 text-muted font-medium text-xs">Total</th>
+                <th className="text-center px-4 py-2 text-muted font-medium text-xs">Nuevos</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface dark:divide-navy-border">
@@ -247,7 +247,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
                 <tr key={i} className="hover:bg-cream dark:hover:bg-navy transition-colors">
                   <td className="px-4 py-2 text-navy dark:text-cream/80">{s.niche}</td>
                   <td className="px-4 py-2 text-navy dark:text-cream/80">{s.location}</td>
-                  <td className="px-4 py-2 text-center text-[#6b7280]">{s.results_found}</td>
+                  <td className="px-4 py-2 text-center text-muted">{s.results_found}</td>
                   <td className="px-4 py-2 text-center">
                     <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-bold">{s.new_leads}</span>
                   </td>
@@ -255,7 +255,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
               ))}
               {searches.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-[#6b7280]">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted">
                     Sin búsquedas esta semana todavía
                   </td>
                 </tr>

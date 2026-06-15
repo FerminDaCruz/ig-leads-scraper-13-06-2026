@@ -8,7 +8,7 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
   const [done, setDone] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  if (done) return <span className="text-[#6b7280] text-sm italic">Guardado</span>
+  if (done) return <span className="text-muted text-sm italic animate-fade-in">Guardado</span>
 
   const handle = (valor: boolean) => {
     setDone(true)
@@ -22,7 +22,7 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
       <button
         onClick={() => handle(true)}
         disabled={isPending}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg font-medium disabled:opacity-50 transition-colors"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 active:scale-[0.97] text-white text-sm rounded-lg font-medium disabled:opacity-50 transition-[transform,background-color] duration-150 ease-out"
       >
         <FiCheck size={14} />
         Calificado
@@ -30,7 +30,7 @@ export function CalificarButtons({ leadId }: { leadId: number }) {
       <button
         onClick={() => handle(false)}
         disabled={isPending}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg font-medium disabled:opacity-50 transition-colors"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 active:scale-[0.97] text-white text-sm rounded-lg font-medium disabled:opacity-50 transition-[transform,background-color] duration-150 ease-out"
       >
         <FiX size={14} />
         No
@@ -43,7 +43,7 @@ export function ContactarButton({ leadId }: { leadId: number }) {
   const [done, setDone] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  if (done) return <span className="text-[#6b7280] text-sm italic">Contactado</span>
+  if (done) return <span className="text-muted text-sm italic animate-fade-in">Contactado</span>
 
   const handle = () => {
     setDone(true)
@@ -56,7 +56,7 @@ export function ContactarButton({ leadId }: { leadId: number }) {
     <button
       onClick={handle}
       disabled={isPending}
-      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-cyan-300 text-navy text-sm rounded-lg font-medium disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-cyan-300 active:scale-[0.97] text-navy text-sm rounded-lg font-medium disabled:opacity-50 transition-[transform,background-color] duration-150 ease-out"
     >
       <FiSend size={13} />
       Contactado

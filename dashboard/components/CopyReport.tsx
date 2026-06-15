@@ -15,9 +15,11 @@ export function CopyReport({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-cyan-300 text-navy text-sm rounded-lg font-medium transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-cyan-300 active:scale-[0.97] text-navy text-sm rounded-lg font-medium transition-[transform,background-color] duration-150 ease-out"
     >
-      {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
+      <span className="transition-[opacity] duration-150 ease-out">
+        {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
+      </span>
       {copied ? 'Copiado!' : 'Copiar reporte'}
     </button>
   )

@@ -8,7 +8,6 @@ export function CopyToSheets({ username, url }: { username: string; url: string 
 
   const copy = () => {
     const day = new Date().getDate().toString()
-    // Columns: Nombre | Link | Fecha | FTF Visto | FUP FTF No Visto | FUP FTF Visto | Notas | Trackeado
     const row = [username, url, day, 'No', '', '', '', 'No'].join('\t')
     navigator.clipboard.writeText(row)
     setCopied(true)
@@ -19,7 +18,7 @@ export function CopyToSheets({ username, url }: { username: string; url: string 
     <button
       onClick={copy}
       title="Copiar fila para Google Sheets"
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium active:scale-[0.97] transition-[transform,background-color,border-color,color] duration-150 ease-out ${
         copied
           ? 'bg-green-500/20 text-green-400 border border-green-500/40'
           : 'bg-navy dark:bg-navy-dark border border-navy-border text-white/70 hover:text-white hover:bg-navy-card'

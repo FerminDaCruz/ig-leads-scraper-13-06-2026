@@ -23,7 +23,7 @@ function EstadoBadge({ lead }: { lead: Lead }) {
     return <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-semibold">Calificado</span>
   if (lead.calificado === false)
     return <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold">Descartado</span>
-  return <span className="px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-[#6b7280] text-xs font-semibold">Pendiente</span>
+  return <span className="px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-semibold">Pendiente</span>
 }
 
 export default async function HistorialPage({
@@ -56,7 +56,7 @@ export default async function HistorialPage({
         <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-navy dark:text-cream">Historial</h1>
-            <p className="text-[#6b7280] text-sm mt-1">{rows.length} leads</p>
+            <p className="text-muted text-sm mt-1">{rows.length} leads</p>
           </div>
           <Suspense>
             <LocationFilter />
@@ -73,10 +73,10 @@ export default async function HistorialPage({
               <Link
                 key={f.id}
                 href={`/historial?${params.toString()}`}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-[background-color,color] duration-150 ease-out ${
                   filtroActivo === f.id
                     ? 'bg-brand text-navy'
-                    : 'bg-white dark:bg-navy-card text-[#6b7280] border border-surface dark:border-navy-border hover:bg-cream dark:hover:bg-navy'
+                    : 'bg-white dark:bg-navy-card text-muted border border-surface dark:border-navy-border hover:bg-cream dark:hover:bg-navy'
                 }`}
               >
                 {f.label}
@@ -89,12 +89,12 @@ export default async function HistorialPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Usuario</th>
-                <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Nicho</th>
-                <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Ubicación</th>
-                <th className="text-center px-4 py-3 text-[#6b7280] font-semibold">Veces</th>
-                <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Estado</th>
-                <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Agregado</th>
+                <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
+                <th className="text-left px-4 py-3 text-muted font-semibold">Nicho</th>
+                <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
+                <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
+                <th className="text-left px-4 py-3 text-muted font-semibold">Estado</th>
+                <th className="text-left px-4 py-3 text-muted font-semibold">Agregado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface dark:divide-navy-border">
@@ -109,12 +109,12 @@ export default async function HistorialPage({
                   <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
                   <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-[#6b7280] text-xs font-bold">
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
                       {lead.veces_encontrado}
                     </span>
                   </td>
                   <td className="px-4 py-3"><EstadoBadge lead={lead} /></td>
-                  <td className="px-4 py-3 text-[#6b7280] text-xs">
+                  <td className="px-4 py-3 text-muted text-xs">
                     {new Date(lead.first_seen_at).toLocaleDateString('es-AR')}
                   </td>
                 </tr>

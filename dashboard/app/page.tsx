@@ -5,6 +5,7 @@ import { Nav } from '@/components/Nav'
 import { CalificarButtons } from '@/components/LeadActions'
 import { LocationFilter } from '@/components/LocationFilter'
 import { Suspense } from 'react'
+import { FiCheckSquare } from 'react-icons/fi'
 
 export default async function CalificarPage({
   searchParams,
@@ -36,7 +37,7 @@ export default async function CalificarPage({
         <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-navy dark:text-cream">Calificar Leads</h1>
-            <p className="text-[#6b7280] text-sm mt-1">
+            <p className="text-muted text-sm mt-1">
               {rows.length} leads pendientes · Revisá el perfil y marcá si califica o no
             </p>
           </div>
@@ -46,21 +47,25 @@ export default async function CalificarPage({
         </div>
 
         {rows.length === 0 ? (
-          <div className="text-center py-20 text-[#6b7280]">
-            <p className="text-xl font-medium">
+          <div className="text-center py-24 text-muted">
+            <FiCheckSquare size={36} className="mx-auto mb-4 opacity-30" />
+            <p className="text-base font-semibold text-navy dark:text-cream/70">
               {ubicacion ? `Sin leads pendientes en "${ubicacion}"` : 'No hay leads pendientes'}
             </p>
+            {!ubicacion && (
+              <p className="text-sm mt-1">Corrí el scraper para agregar nuevos perfiles</p>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Usuario</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Nicho</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Ubicación</th>
-                  <th className="text-center px-4 py-3 text-[#6b7280] font-semibold">Veces</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Acción</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Nicho</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
+                  <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
+                  <th className="text-left px-4 py-3 text-muted font-semibold">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface dark:divide-navy-border">
@@ -75,7 +80,7 @@ export default async function CalificarPage({
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-[#6b7280] text-xs font-bold">
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
                         {lead.veces_encontrado}
                       </span>
                     </td>

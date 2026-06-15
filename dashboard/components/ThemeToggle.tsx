@@ -14,7 +14,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+      className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 active:scale-[0.97] transition-[transform,background-color,color] duration-150 ease-out"
       title="Cambiar tema"
     >
       {theme === 'dark' ? <FiSun size={18} /> : <FiMoon size={18} />}
