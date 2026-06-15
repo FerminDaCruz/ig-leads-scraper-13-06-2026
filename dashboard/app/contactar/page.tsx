@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { getSupabase, Lead } from '@/lib/supabase'
 import { Nav } from '@/components/Nav'
 import { ContactarButton } from '@/components/LeadActions'
+import { CopyToSheets } from '@/components/CopyToSheets'
 import { LocationFilter } from '@/components/LocationFilter'
 import { Suspense } from 'react'
 
@@ -63,7 +64,7 @@ export default async function ContactarPage({
                   <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Nicho</th>
                   <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Ubicación</th>
                   <th className="text-center px-4 py-3 text-[#6b7280] font-semibold">Veces</th>
-                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Acción</th>
+                  <th className="text-left px-4 py-3 text-[#6b7280] font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface dark:divide-navy-border">
@@ -83,7 +84,10 @@ export default async function ContactarPage({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <ContactarButton leadId={lead.id} />
+                      <div className="flex items-center gap-2">
+                        <CopyToSheets username={lead.username} url={lead.url} />
+                        <ContactarButton leadId={lead.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}
