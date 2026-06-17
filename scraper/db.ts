@@ -64,25 +64,32 @@ export async function saveSearchResults(
   for (const profile of profiles) {
     const { data: existing } = await supabase
       .from('leads')
-      .select('id, veces_encontrado')
+      .select('id, veces_encontrado, nichos, ubicaciones')
       .eq('username', profile.username)
       .single()
 
     let leadId: number
 
     if (existing) {
+      const existingNichos = (existing.nichos || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+      const existingUbics = (existing.ubicaciones || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+      const updatedNichos = existingNichos.includes(niche) ? existing.nichos : [...existingNichos, niche].join(', ')
+      const updatedUbics = existingUbics.includes(location) ? existing.ubicaciones : [...existingUbics, location].join(', ')
+
       await supabase
         .from('leads')
         .update({
           last_seen_at: new Date().toISOString(),
           veces_encontrado: existing.veces_encontrado + 1,
+          nichos: updatedNichos,
+          ubicaciones: updatedUbics,
         })
         .eq('id', existing.id)
       leadId = existing.id
     } else {
       const { data: newLead, error: insertError } = await supabase
         .from('leads')
-        .insert({ username: profile.username, url: profile.url })
+        .insert({ username: profile.username, url: profile.url, nichos: niche, ubicaciones: location })
         .select()
         .single()
 
