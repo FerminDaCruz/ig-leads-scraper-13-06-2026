@@ -1,4 +1,4 @@
-import type { BrowserContext } from 'playwright'
+import type { BrowserContext, Page } from 'playwright'
 import { randomDelay } from './browser'
 
 const SKIP_USERNAMES = new Set([
@@ -6,20 +6,39 @@ const SKIP_USERNAMES = new Set([
   'tags', 'locations', 'directory', 'about', 'legal', 'help',
 ])
 
-function extractInstagramProfiles(text: string): { url: string; username: string }[] {
-  const pattern = /instagram\.com\/([a-zA-Z0-9_.-]+)\/?/g
+function parseInstagramUrl(rawUrl: string): { url: string; username: string } | null {
+  const match = rawUrl.match(/instagram\.com\/([a-zA-Z0-9_.-]+)\/?/)
+  if (!match) return null
+  const username = match[1]
+  if (SKIP_USERNAMES.has(username)) return null
+  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) return null
+  if (username.length < 3 || username.length > 30) return null
+  return { username, url: `https://www.instagram.com/${username}/` }
+}
+
+// DuckDuckGo wraps links as /l/?uddg=ENCODED_URL — extract and decode
+async function extractFromPage(page: Page): Promise<{ url: string; username: string }[]> {
+  const hrefs: string[] = await page.$$eval('a[href]', (links) =>
+    links.map((l) => (l as HTMLAnchorElement).href)
+  )
+
   const seen = new Set<string>()
   const results: { url: string; username: string }[] = []
-  let match: RegExpExecArray | null
 
-  while ((match = pattern.exec(text)) !== null) {
-    const username = match[1].replace(/\/$/, '')
-    if (SKIP_USERNAMES.has(username)) continue
-    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) continue
-    if (username.length < 3 || username.length > 30) continue
-    if (seen.has(username)) continue
-    seen.add(username)
-    results.push({ username, url: `https://www.instagram.com/${username}/` })
+  for (const href of hrefs) {
+    let targetUrl = href
+    try {
+      const parsed = new URL(href)
+      const uddg = parsed.searchParams.get('uddg')
+      if (uddg) targetUrl = uddg  // URLSearchParams auto-decodes %2F → /
+    } catch {
+      continue
+    }
+
+    const profile = parseInstagramUrl(targetUrl)
+    if (!profile || seen.has(profile.username)) continue
+    seen.add(profile.username)
+    results.push(profile)
   }
 
   return results
@@ -32,23 +51,15 @@ export async function searchGoogle(
 ): Promise<{ url: string; username: string }[]> {
   const page = await context.newPage()
   const query = `site:instagram.com "${niche}" "${location}" -inurl:/p/ -inurl:/reel/ -inurl:/tv/`
-  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=20&hl=es`
+  const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=ar-es`
 
   try {
     console.log(`  Buscando: "${niche}" + "${location}"`)
 
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 })
-    await randomDelay(3000, 6000)
+    await randomDelay(2000, 4000)
 
-    const isCaptcha = await page.$('[id="captcha-form"], form[action="/sorry/index"], #recaptcha')
-    if (isCaptcha) {
-      console.log('  ⚠️  CAPTCHA detectado, saltando esta búsqueda')
-      return []
-    }
-
-    const pageContent = await page.content()
-    const profiles = extractInstagramProfiles(pageContent)
-
+    const profiles = await extractFromPage(page)
     console.log(`  ✓ ${profiles.length} perfiles encontrados`)
     return profiles
   } catch (error) {
