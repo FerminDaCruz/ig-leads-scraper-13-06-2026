@@ -55,11 +55,20 @@ export default async function StatsPage() {
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
   const weekAgoStr = weekAgo.toISOString()
 
-  const [leadsRes, searchesRes, newLeadsRes, qualifiedRes] = await Promise.all([
+  // Start of today in Argentina (UTC-3): 03:00 UTC
+  const todayStart = new Date(now)
+  todayStart.setUTCHours(3, 0, 0, 0)
+  if (now.getUTCHours() < 3) todayStart.setUTCDate(todayStart.getUTCDate() - 1)
+  const todayStr = todayStart.toISOString()
+
+  const [leadsRes, searchesRes, newLeadsRes, qualifiedRes, todaySearchesRes, todayNewLeadsRes, todayQualifiedRes] = await Promise.all([
     supabase.from('leads').select('nichos, ubicaciones, calificado, contactado, qualified_at'),
     supabase.from('searches').select('niche, location, results_found, new_leads, ran_at').gte('ran_at', weekAgoStr).order('new_leads', { ascending: false }),
     supabase.from('leads').select('id', { count: 'exact', head: true }).gte('first_seen_at', weekAgoStr),
     supabase.from('leads').select('id', { count: 'exact', head: true }).gte('qualified_at', weekAgoStr),
+    supabase.from('searches').select('id', { count: 'exact', head: true }).gte('ran_at', todayStr),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).gte('first_seen_at', todayStr),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).gte('qualified_at', todayStr),
   ])
 
   const allLeads = (leadsRes.data || []) as {
@@ -72,6 +81,10 @@ export default async function StatsPage() {
   const searches = searchesRes.data || []
   const newLeadsCount = newLeadsRes.count ?? 0
   const qualifiedThisWeek = qualifiedRes.count ?? 0
+
+  const todaySearches = todaySearchesRes.count ?? 0
+  const todayNewLeads = todayNewLeadsRes.count ?? 0
+  const todayQualified = todayQualifiedRes.count ?? 0
 
   const totalLeads = allLeads.length
   const totalCalificados = allLeads.filter((l) => l.calificado === true).length
@@ -124,10 +137,25 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
       <main className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-navy dark:text-cream">Reporte Semanal</h1>
-            <p className="text-muted text-sm mt-1">{fechaDesde} - {fechaHasta}</p>
+            <h1 className="text-2xl font-bold text-navy dark:text-cream">Reportes</h1>
+            <p className="text-muted text-sm mt-1">{now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })}</p>
           </div>
           <CopyReport text={reporteTexto} />
+        </div>
+
+        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Hoy</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'Búsquedas realizadas', value: todaySearches },
+            { label: 'Perfiles nuevos', value: todayNewLeads },
+            { label: 'Calificados', value: todayQualified },
+            { label: 'Pendientes en total', value: totalSinRevisar },
+          ].map((card) => (
+            <div key={card.label} className="bg-navy dark:bg-navy-card border border-navy-border rounded-xl p-4">
+              <p className="text-xs text-white/50 mb-1">{card.label}</p>
+              <p className="text-2xl font-bold text-cream">{card.value}</p>
+            </div>
+          ))}
         </div>
 
         <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Esta semana</p>

@@ -5,7 +5,8 @@
   "scripts": {
     "scrape": "tsx scraper/index.ts",
     "import": "tsx scripts/import-csv.ts",
-    "report": "tsx scripts/weekly-report.ts"
+    "report": "tsx scripts/weekly-report.ts",
+    "daily-report": "tsx scripts/daily-report.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
