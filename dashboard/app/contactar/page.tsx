@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead } from '@/lib/supabase'
 import { Nav } from '@/components/Nav'
-import { ContactarButton } from '@/components/LeadActions'
+import { ContactarButton, DescartarMenu } from '@/components/LeadActions'
 import { CopyToSheets } from '@/components/CopyToSheets'
 import { LocationFilter } from '@/components/LocationFilter'
 import { Suspense } from 'react'
@@ -58,14 +58,14 @@ export default async function ContactarPage({
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-x-auto">
+            <table className="w-full text-sm min-w-[520px]">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
                   <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
-                  <th className="text-left px-4 py-3 text-muted font-semibold">Nicho</th>
+                  <th className="hidden lg:table-cell text-left px-4 py-3 text-muted font-semibold">Nicho</th>
                   <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
-                  <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
+                  <th className="hidden md:table-cell text-center px-4 py-3 text-muted font-semibold">Veces</th>
                   <th className="text-left px-4 py-3 text-muted font-semibold">Acciones</th>
                 </tr>
               </thead>
@@ -78,7 +78,7 @@ export default async function ContactarPage({
                         @{lead.username}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
@@ -89,6 +89,7 @@ export default async function ContactarPage({
                       <div className="flex items-center gap-2">
                         <CopyToSheets username={lead.username} url={lead.url} />
                         <ContactarButton leadId={lead.id} />
+                        <DescartarMenu leadId={lead.id} />
                       </div>
                     </td>
                   </tr>

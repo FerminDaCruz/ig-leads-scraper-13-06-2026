@@ -190,7 +190,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           {/* Nichos */}
-          <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-x-auto">
             <div className="px-4 py-3 border-b border-surface dark:border-navy-border">
               <h2 className="font-semibold text-navy dark:text-cream text-sm">Mejores nichos</h2>
               <p className="text-xs text-muted">Por % de calificación (mín. 3 leads)</p>
@@ -223,7 +223,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
           </div>
 
           {/* Ubicaciones */}
-          <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-x-auto">
             <div className="px-4 py-3 border-b border-surface dark:border-navy-border">
               <h2 className="font-semibold text-navy dark:text-cream text-sm">Mejores ubicaciones</h2>
               <p className="text-xs text-muted">Por % de calificación (mín. 3 leads)</p>
@@ -257,7 +257,7 @@ ${searches.slice(0, 5).map((s, i) => `${i + 1}. "${s.niche}" + "${s.location}": 
         </div>
 
         {/* Búsquedas más efectivas */}
-        <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-navy-card border border-surface dark:border-navy-border rounded-xl overflow-x-auto">
           <div className="px-4 py-3 border-b border-surface dark:border-navy-border">
             <h2 className="font-semibold text-navy dark:text-cream text-sm">Búsquedas más efectivas esta semana</h2>
           </div>

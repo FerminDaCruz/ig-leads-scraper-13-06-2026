@@ -35,7 +35,7 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
           <span className="text-white font-bold text-lg">IG Leads</span>
         </div>
 
-        <div className="flex gap-1 flex-1">
+        <div className="flex gap-1 flex-1 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = active === tab.id
@@ -43,17 +43,17 @@ export async function Nav({ active }: { active: 'calificar' | 'contactar' | 'his
               <Link
                 key={tab.id}
                 href={tab.href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-[background-color,color] duration-150 ease-out ${
+                className={`flex items-center gap-1.5 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-[background-color,color] duration-150 ease-out ${
                   isActive
                     ? 'bg-brand text-navy'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Icon size={15} />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
                 {tab.count !== null && (
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                       isActive
                         ? 'bg-navy/20 text-navy'
                         : 'bg-white/15 text-white'

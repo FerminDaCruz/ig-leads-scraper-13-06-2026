@@ -57,12 +57,12 @@ export default async function CalificarPage({
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
                   <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
-                  <th className="text-left px-4 py-3 text-muted font-semibold">Nicho</th>
+                  <th className="hidden lg:table-cell text-left px-4 py-3 text-muted font-semibold">Nicho</th>
                   <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
                   <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
                   <th className="text-left px-4 py-3 text-muted font-semibold">Acción</th>
@@ -77,7 +77,7 @@ export default async function CalificarPage({
                         @{lead.username}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
                     <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
