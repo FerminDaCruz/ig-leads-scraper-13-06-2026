@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiInstagram } from 'react-icons/si'
-import { FiCheckSquare, FiSend, FiClock, FiBarChart2, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiMenu } from 'react-icons/fi'
+import { FiCheckSquare, FiSend, FiClock, FiBarChart2, FiTrendingUp, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiMenu } from 'react-icons/fi'
 import { logout } from '@/lib/auth'
 import { useTheme } from 'next-themes'
 
@@ -18,6 +18,7 @@ const TABS = [
   { href: '/contactar', label: 'Contactar',  icon: FiSend,        countKey: 'listos' as const     },
   { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
   { href: '/stats',     label: 'Reportes',   icon: FiBarChart2,   countKey: null                  },
+  { href: '/metricas',  label: 'Métricas',   icon: FiTrendingUp,  countKey: null                  },
 ]
 
 export function SidebarClient({ pendientes, listos }: Props) {
