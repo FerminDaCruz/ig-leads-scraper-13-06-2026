@@ -89,7 +89,14 @@ export async function saveSearchResults(
     } else {
       const { data: newLead, error: insertError } = await supabase
         .from('leads')
-        .insert({ username: profile.username, url: profile.url, nichos: niche, ubicaciones: location })
+        .insert({
+          username: profile.username,
+          url: profile.url,
+          nichos: niche,
+          ubicaciones: location,
+          found_via_niche: niche,
+          found_via_location: location,
+        })
         .select()
         .single()
 
