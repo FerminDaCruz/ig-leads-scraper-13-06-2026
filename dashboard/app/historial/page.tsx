@@ -3,27 +3,27 @@ export const dynamic = 'force-dynamic'
 import { getSupabase, Lead } from '@/lib/supabase'
 import { Nav } from '@/components/Nav'
 import { LocationFilter } from '@/components/LocationFilter'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
 type Filtro = 'todos' | 'pendientes' | 'calificados' | 'descartados' | 'contactados'
 
 const FILTROS: { id: Filtro; label: string }[] = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'pendientes', label: 'Sin revisar' },
+  { id: 'todos',       label: 'Todos' },
+  { id: 'pendientes',  label: 'Sin revisar' },
   { id: 'calificados', label: 'Calificados' },
   { id: 'descartados', label: 'Descartados' },
   { id: 'contactados', label: 'Contactados' },
 ]
 
 function EstadoBadge({ lead }: { lead: Lead }) {
-  if (lead.contactado)
-    return <span className="px-2 py-0.5 rounded-full bg-brand/20 text-brand text-xs font-semibold">Contactado</span>
-  if (lead.calificado === true)
-    return <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs font-semibold">Calificado</span>
-  if (lead.calificado === false)
-    return <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold">Descartado</span>
-  return <span className="px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-semibold">Pendiente</span>
+  if (lead.contactado)           return <Badge variant="contacted">Contactado</Badge>
+  if (lead.calificado === true)  return <Badge variant="success">Calificado</Badge>
+  if (lead.calificado === false) return <Badge variant="destructive">Descartado</Badge>
+  return <Badge variant="pending">Pendiente</Badge>
 }
 
 export default async function HistorialPage({
@@ -38,7 +38,7 @@ export default async function HistorialPage({
   const supabase = getSupabase()
   let query = supabase.from('leads').select('*').order('first_seen_at', { ascending: false })
 
-  if (filtroActivo === 'pendientes') query = query.is('calificado', null)
+  if (filtroActivo === 'pendientes')       query = query.is('calificado', null)
   else if (filtroActivo === 'calificados') query = query.eq('calificado', true).eq('contactado', false)
   else if (filtroActivo === 'descartados') query = query.eq('calificado', false)
   else if (filtroActivo === 'contactados') query = query.eq('contactado', true)
@@ -73,7 +73,7 @@ export default async function HistorialPage({
               <Link
                 key={f.id}
                 href={`/historial?${params.toString()}`}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-[background-color,color] duration-150 ease-out ${
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   filtroActivo === f.id
                     ? 'bg-brand text-navy'
                     : 'bg-white dark:bg-navy-card text-muted border border-surface dark:border-navy-border hover:bg-cream dark:hover:bg-navy'
@@ -85,43 +85,47 @@ export default async function HistorialPage({
           })}
         </div>
 
-        <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-x-auto">
-          <table className="w-full text-sm min-w-[480px]">
-            <thead>
-              <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
-                <th className="hidden lg:table-cell text-left px-4 py-3 text-muted font-semibold">Nicho</th>
-                <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
-                <th className="hidden md:table-cell text-center px-4 py-3 text-muted font-semibold">Veces</th>
-                <th className="text-left px-4 py-3 text-muted font-semibold">Estado</th>
-                <th className="hidden md:table-cell text-left px-4 py-3 text-muted font-semibold">Agregado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface dark:divide-navy-border">
+        <Card className="overflow-x-auto">
+          <Table className="min-w-[480px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Usuario</TableHead>
+                <TableHead className="hidden lg:table-cell">Nicho</TableHead>
+                <TableHead>Ubicación</TableHead>
+                <TableHead className="hidden md:table-cell text-center">Veces</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="hidden md:table-cell">Agregado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((lead) => (
-                <tr key={lead.id} className="hover:bg-cream dark:hover:bg-navy transition-colors">
-                  <td className="px-4 py-3">
+                <TableRow key={lead.id}>
+                  <TableCell>
                     <a href={lead.url} target="_blank" rel="noopener noreferrer"
                       className="text-brand hover:text-cyan-300 font-medium hover:underline">
                       @{lead.username}
                     </a>
-                  </td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
-                  <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
-                  <td className="hidden md:table-cell px-4 py-3 text-center">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
-                      {lead.veces_encontrado}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3"><EstadoBadge lead={lead} /></td>
-                  <td className="hidden md:table-cell px-4 py-3 text-muted text-xs">
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-navy dark:text-cream/80 max-w-[180px] truncate">
+                    {lead.nichos || '—'}
+                  </TableCell>
+                  <TableCell className="text-navy dark:text-cream/80 max-w-[160px] truncate">
+                    {lead.ubicaciones || '—'}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-center">
+                    <Badge variant="count">{lead.veces_encontrado}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <EstadoBadge lead={lead} />
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted text-xs">
                     {new Date(lead.first_seen_at).toLocaleDateString('es-AR')}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       </main>
     </>
   )

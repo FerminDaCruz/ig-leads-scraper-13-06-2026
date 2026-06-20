@@ -4,6 +4,9 @@ import { getSupabase, Lead } from '@/lib/supabase'
 import { Nav } from '@/components/Nav'
 import { CalificarButtons } from '@/components/LeadActions'
 import { LocationFilter } from '@/components/LocationFilter'
+import { Card } from '@/components/ui/card'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import { Suspense } from 'react'
 import { FiCheckSquare } from 'react-icons/fi'
 
@@ -57,39 +60,43 @@ export default async function CalificarPage({
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-navy-card rounded-xl border border-surface dark:border-navy-border overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead>
-                <tr className="border-b border-surface dark:border-navy-border bg-surface dark:bg-navy">
-                  <th className="text-left px-4 py-3 text-muted font-semibold">Usuario</th>
-                  <th className="hidden lg:table-cell text-left px-4 py-3 text-muted font-semibold">Nicho</th>
-                  <th className="text-left px-4 py-3 text-muted font-semibold">Ubicación</th>
-                  <th className="text-center px-4 py-3 text-muted font-semibold">Veces</th>
-                  <th className="text-left px-4 py-3 text-muted font-semibold">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface dark:divide-navy-border">
+          <Card className="overflow-x-auto">
+            <Table className="min-w-[480px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead className="hidden lg:table-cell">Nicho</TableHead>
+                  <TableHead>Ubicación</TableHead>
+                  <TableHead className="text-center">Veces</TableHead>
+                  <TableHead>Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rows.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-cream dark:hover:bg-navy transition-colors">
-                    <td className="px-4 py-3">
+                  <TableRow key={lead.id}>
+                    <TableCell>
                       <a href={lead.url} target="_blank" rel="noopener noreferrer"
                         className="text-brand hover:text-cyan-300 font-medium hover:underline">
                         @{lead.username}
                       </a>
-                    </td>
-                    <td className="hidden lg:table-cell px-4 py-3 text-navy dark:text-cream/80 max-w-[180px] truncate">{lead.nichos || '—'}</td>
-                    <td className="px-4 py-3 text-navy dark:text-cream/80 max-w-[160px] truncate">{lead.ubicaciones || '—'}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-surface dark:bg-navy text-muted text-xs font-bold">
-                        {lead.veces_encontrado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3"><CalificarButtons leadId={lead.id} /></td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-navy dark:text-cream/80 max-w-[180px] truncate">
+                      {lead.nichos || '—'}
+                    </TableCell>
+                    <TableCell className="text-navy dark:text-cream/80 max-w-[160px] truncate">
+                      {lead.ubicaciones || '—'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="count">{lead.veces_encontrado}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <CalificarButtons leadId={lead.id} />
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </main>
     </>
