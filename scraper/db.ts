@@ -116,4 +116,5 @@ export async function saveSearchResults(
     .eq('id', searchRecord.id)
 
   console.log(`  → ${newLeads} leads nuevos, ${profiles.length - newLeads} ya existían`)
+  return newLeads
 }

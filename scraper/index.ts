@@ -1,45 +1,48 @@
 import 'dotenv/config'
 import { createBrowser, randomDelay } from './browser'
-import { searchGoogle } from './search'
+import { searchDDG } from './search'
 import { getNextSearchPairs, saveSearchResults } from './db'
 
-const SEARCHES_PER_RUN = 5
+const MIN_NEW_LEADS = 50   // objetivo diario de leads nuevos
+const PAGES_PER_SEARCH = 3 // páginas de resultados por búsqueda
+const BATCH_SIZE     = 5   // pares por lote (para no recargar DB en cada búsqueda)
+const MAX_SEARCHES   = 20  // tope de seguridad (20 búsquedas × 3 páginas = 60 páginas máx.)
 
 async function main() {
   console.log('🚀 Iniciando scraper de leads de Instagram')
   console.log(`   Fecha: ${new Date().toLocaleString('es-AR')}`)
-  console.log(`   Búsquedas por corrida: ${SEARCHES_PER_RUN}\n`)
+  console.log(`   Objetivo: ${MIN_NEW_LEADS} leads nuevos · ${PAGES_PER_SEARCH} páginas/búsqueda · máx. ${MAX_SEARCHES} búsquedas\n`)
 
-  const pairs = await getNextSearchPairs(SEARCHES_PER_RUN)
-
-  if (pairs.length === 0) {
-    console.log('No hay combinaciones disponibles.')
-    return
-  }
-
-  console.log(`Combinaciones a buscar:`)
-  pairs.forEach((p, i) => console.log(`  ${i + 1}. "${p.niche}" + "${p.location}"`))
-  console.log()
+  let totalNewLeads = 0
+  let totalSearches = 0
 
   const { browser, context } = await createBrowser()
 
   try {
-    for (let i = 0; i < pairs.length; i++) {
-      const { niche, location } = pairs[i]
-      const query = `site:instagram.com "${niche}" "${location}" -inurl:/p/ -inurl:/reel/ -inurl:/tv/`
+    while (totalNewLeads < MIN_NEW_LEADS && totalSearches < MAX_SEARCHES) {
+      const pairs = await getNextSearchPairs(BATCH_SIZE)
 
-      console.log(`[${i + 1}/${pairs.length}] Procesando: ${niche} | ${location}`)
-
-      const profiles = await searchGoogle(context, niche, location)
-
-      if (profiles.length > 0) {
-        await saveSearchResults(profiles, niche, location, query)
-      } else {
-        // Registrar búsqueda vacía igual para no repetirla pronto
-        await saveSearchResults([], niche, location, query)
+      if (pairs.length === 0) {
+        console.log('No hay más combinaciones disponibles.')
+        break
       }
 
-      if (i < pairs.length - 1) {
+      for (const { niche, location } of pairs) {
+        if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES) break
+
+        const query = `site:instagram.com "${niche}" "${location}" -inurl:/p/ -inurl:/reel/ -inurl:/tv/`
+        console.log(`[${totalSearches + 1}/${MAX_SEARCHES}] ${niche} | ${location}`)
+
+        const profiles = await searchDDG(context, niche, location, PAGES_PER_SEARCH)
+        const newLeads = await saveSearchResults(profiles, niche, location, query)
+
+        totalNewLeads += newLeads
+        totalSearches++
+
+        console.log(`  Acumulados: ${totalNewLeads}/${MIN_NEW_LEADS} nuevos\n`)
+
+        if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES) break
+
         const wait = Math.floor(Math.random() * 8000) + 10000
         console.log(`  Esperando ${Math.round(wait / 1000)}s antes de la próxima búsqueda...\n`)
         await randomDelay(wait, wait + 2000)
@@ -49,7 +52,12 @@ async function main() {
     await browser.close()
   }
 
-  console.log('\n✅ Scraper finalizado')
+  if (totalNewLeads >= MIN_NEW_LEADS) {
+    console.log(`\n✅ Objetivo alcanzado: ${totalNewLeads} leads nuevos en ${totalSearches} búsquedas`)
+  } else {
+    console.log(`\n⚠️  Fin sin alcanzar objetivo: ${totalNewLeads}/${MIN_NEW_LEADS} leads en ${totalSearches} búsquedas`)
+    console.log('   Considera agregar más nichos o ubicaciones al config.')
+  }
 }
 
 main().catch((err) => {
