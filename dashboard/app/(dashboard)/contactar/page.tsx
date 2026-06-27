@@ -74,7 +74,7 @@ export default async function ContactarPage({
                 <TableRow key={lead.id}>
                   <TableCell>
                     <a href={lead.url} target="_blank" rel="noopener noreferrer"
-                      className="text-brand hover:text-cyan-300 font-medium hover:underline">
+                      className="text-foreground font-medium underline-offset-2 hover:underline decoration-foreground/40">
                       @{lead.username}
                     </a>
                   </TableCell>

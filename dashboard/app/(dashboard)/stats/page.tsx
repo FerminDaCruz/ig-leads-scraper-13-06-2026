@@ -345,7 +345,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join("\n") ||
   ];
 
   return (
-    <main className="max-w-7xl mx-auto px-6 py-6">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
       {/* Header */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
         <div>
@@ -400,18 +400,18 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join("\n") ||
                     <span className="font-medium text-navy dark:text-cream shrink-0">
                       {row.label}
                     </span>
-                    <div className="flex items-center gap-6 ml-auto">
-                      <span className="font-bold text-navy dark:text-cream ">
+                    <div className="flex items-center gap-3 sm:gap-6 ml-auto">
+                      <span className="font-bold text-navy dark:text-cream tnum">
                         {row.n}
                       </span>
-                      <span className="text-muted text-xs w-28 text-left shrink-0">
-                        <span className="font-semibold text-navy dark:text-cream">
+                      <span className="hidden sm:block text-muted text-xs w-28 text-left shrink-0">
+                        <span className="font-semibold text-navy dark:text-cream tnum">
                           {pctChain}%
                         </span>{" "}
                         {row.chainLabel}
                       </span>
-                      <span className="text-muted text-xs w-28 text-left shrink-0">
-                        <span className="font-semibold text-brand">
+                      <span className="hidden sm:block text-muted text-xs w-28 text-left shrink-0">
+                        <span className="font-semibold text-foreground tnum">
                           {pctOfFound}%
                         </span>{" "}
                         de encontrados

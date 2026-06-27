@@ -13,9 +13,9 @@ const PERIODS = [
 
 export function PeriodTabs({ current, currentDate }: { current: string; currentDate?: string }) {
   const router = useRouter()
-  const base     = 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border'
-  const active   = 'bg-brand text-navy border-brand'
-  const inactive = 'bg-white dark:bg-navy-card text-muted border-surface dark:border-navy-border hover:bg-cream dark:hover:bg-navy'
+  const base     = 'px-3 py-1.5 rounded-xl text-sm font-medium transition-colors border'
+  const active   = 'bg-foreground text-background border-transparent shadow-sm'
+  const inactive = 'bg-card/60 backdrop-blur-sm text-muted border-border hover:bg-foreground/5 hover:text-foreground'
 
   return (
     <div className="flex gap-1.5 flex-wrap items-center">

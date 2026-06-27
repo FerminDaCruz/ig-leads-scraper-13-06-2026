@@ -105,7 +105,7 @@ export default async function MetricasPage() {
   ]
 
   return (
-    <main className="max-w-7xl mx-auto px-6 py-6">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
 
       {/* Header */}
       <div className="mb-6">
@@ -149,9 +149,9 @@ export default async function MetricasPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium text-navy dark:text-cream">{row.label}</span>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-navy dark:text-cream">{row.n.toLocaleString('es-AR')}</span>
-                    <span className="w-14 text-right font-bold text-brand">{row.pctOfDB}%</span>
-                    <span className="text-xs text-muted w-20">de la DB</span>
+                    <span className="font-bold text-navy dark:text-cream tnum">{row.n.toLocaleString('es-AR')}</span>
+                    <span className="w-14 text-right font-bold text-foreground tnum">{row.pctOfDB}%</span>
+                    <span className="hidden sm:inline text-xs text-muted w-20">de la DB</span>
                   </div>
                 </div>
                 <div className="w-full bg-surface dark:bg-navy rounded-full h-3 overflow-hidden">

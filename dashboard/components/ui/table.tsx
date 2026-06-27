@@ -16,7 +16,7 @@ const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
   ({ className, ...props }, ref) => (
     <thead
       ref={ref}
-      className={cn('bg-surface dark:bg-navy border-b border-surface dark:border-navy-border', className)}
+      className={cn('bg-foreground/[0.035] dark:bg-foreground/5 border-b border-border', className)}
       {...props}
     />
   )
@@ -27,7 +27,7 @@ const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes
   ({ className, ...props }, ref) => (
     <tbody
       ref={ref}
-      className={cn('divide-y divide-surface dark:divide-navy-border [&_tr:hover]:bg-cream dark:[&_tr:hover]:bg-navy [&_tr]:transition-colors', className)}
+      className={cn('divide-y divide-border [&_tr:hover]:bg-foreground/[0.03] [&_tr]:transition-colors', className)}
       {...props}
     />
   )

@@ -15,17 +15,17 @@ const config: Config = {
         sans: ['var(--font-geist)', ...fontFamily.sans],
       },
       colors: {
-        // Paleta personalizada
+        // Paleta neutra (escala de grises, zinc) — tokens heredados remapeados
         navy: {
-          DEFAULT: '#1f2a44',
-          dark:    '#141c2e',
-          card:    '#253452',
-          border:  '#2d3f5e',
+          DEFAULT: '#27272a',  // zinc-800 · texto en claro / superficie secundaria en oscuro
+          dark:    '#09090b',  // zinc-950 · fondo de página en oscuro
+          card:    '#18181b',  // zinc-900 · cards en oscuro
+          border:  '#27272a',  // zinc-800 · bordes en oscuro
         },
-        cream:   '#FFF4E4',
-        surface: '#f4f4f4',
-        brand:   '#22d3ee',
-        muted:   '#6b7280',
+        cream:   '#fafafa',    // casi blanco · fondo claro / texto en oscuro
+        surface: '#e4e4e7',    // zinc-200 · rellenos y bordes sutiles
+        brand:   'hsl(var(--brand))', // acento monocromo, se invierte por tema
+        muted:   '#71717a',    // zinc-500
         // Tokens semánticos shadcn (CSS variables)
         border:      'hsl(var(--border))',
         input:       'hsl(var(--input))',

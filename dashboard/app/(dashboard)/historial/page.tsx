@@ -70,10 +70,10 @@ export default async function HistorialPage({
             <Link
               key={f.id}
               href={`/historial?${params.toString()}`}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                 filtroActivo === f.id
-                  ? 'bg-brand text-navy'
-                  : 'bg-white dark:bg-navy-card text-muted border border-surface dark:border-navy-border hover:bg-cream dark:hover:bg-navy'
+                  ? 'bg-foreground text-background shadow-sm'
+                  : 'bg-card/60 backdrop-blur-sm text-muted border border-border hover:bg-foreground/5 hover:text-foreground'
               }`}
             >
               {f.label}
@@ -101,7 +101,7 @@ export default async function HistorialPage({
               <TableRow key={lead.id}>
                 <TableCell>
                   <a href={lead.url} target="_blank" rel="noopener noreferrer"
-                    className="text-brand hover:text-cyan-300 font-medium hover:underline">
+                    className="text-foreground font-medium underline-offset-2 hover:underline decoration-foreground/40">
                     @{lead.username}
                   </a>
                 </TableCell>

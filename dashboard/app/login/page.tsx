@@ -12,17 +12,19 @@ export default async function LoginPage({
   const { error } = await searchParams
 
   return (
-    <div className="dark min-h-screen bg-navy-dark flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="dark relative min-h-[100dvh] bg-navy-dark flex items-center justify-center px-4">
+      <div className="relative z-[1] w-full max-w-sm">
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <SiInstagram size={22} className="text-brand" />
-          <span className="text-white font-bold text-xl tracking-tight">IG Leads</span>
+          <span className="grid place-items-center h-9 w-9 rounded-xl bg-foreground text-background">
+            <SiInstagram size={18} />
+          </span>
+          <span className="text-foreground font-semibold text-xl tracking-tight">IG Leads</span>
         </div>
 
-        <div className="p-1 rounded-2xl border border-navy-border/50 bg-white/[0.03]">
+        <div className="rounded-3xl glass-island p-1.5">
           <form
             action={login}
-            className="bg-navy-card rounded-xl p-8 flex flex-col gap-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+            className="rounded-[1.35rem] bg-card/40 p-8 flex flex-col gap-4"
           >
             <h1 className="text-cream font-bold text-xl tracking-tight mb-1">Iniciar sesión</h1>
 
