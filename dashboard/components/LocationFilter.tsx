@@ -2,15 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { FiMapPin, FiEyeOff, FiX } from 'react-icons/fi'
-
-const LOCATIONS = [
-  'Argentina', 'Bariloche', 'Buenos Aires', 'CABA', 'Cafayate', 'Cordoba',
-  'El Bolson', 'El Calafate', 'Las Grutas', 'Mar del Plata', 'Mendoza',
-  'Miramar', 'Monte Hermoso', 'Necochea', 'Pinamar', 'Puerto Iguazu',
-  'Puerto Madryn', 'Salta', 'San Bernardo', 'San Martin de los Andes',
-  'San Rafael', 'Tandil', 'Tilcara', 'Ushuaia', 'Villa Carlos Paz',
-  'Villa Gesell', 'Villa La Angostura',
-]
+import { LOCATIONS } from '@/lib/constants'
 
 const selectClass =
   'py-2 text-sm rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream appearance-none focus:outline-none focus:ring-2 focus:ring-brand border-surface dark:border-navy-border'

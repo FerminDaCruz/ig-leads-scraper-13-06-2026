@@ -13,16 +13,20 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const RAZONES_CALIFICAR = [
-  { value: 'ya_tiene_web',      label: 'Ya tiene web' },
-  { value: 'inactivo',          label: 'Inactivo' },
-  { value: 'no_es_alojamiento', label: 'No es alojamiento' },
-  { value: 'otro',              label: 'Otro' },
+  { value: 'ya_tiene_web',         label: 'Ya tiene web' },
+  { value: 'inactivo',             label: 'Inactivo' },
+  { value: 'no_es_alojamiento',    label: 'No es alojamiento' },
+  { value: 'pocos_seguidores',     label: 'Pocos seguidores' },
+  { value: 'perfil_no_encontrado', label: 'Perfil no encontrado' },
+  { value: 'otro',                 label: 'Otro' },
 ]
 
 const RAZONES_DESCARTAR = [
-  { value: 'inactivo',     label: 'Inactivo' },
-  { value: 'ya_tiene_web', label: 'Ya tiene web' },
-  { value: 'otro',         label: 'Otro' },
+  { value: 'inactivo',             label: 'Inactivo' },
+  { value: 'ya_tiene_web',         label: 'Ya tiene web' },
+  { value: 'pocos_seguidores',     label: 'Pocos seguidores' },
+  { value: 'perfil_no_encontrado', label: 'Perfil no encontrado' },
+  { value: 'otro',                 label: 'Otro' },
 ]
 
 export function CalificarButtons({ leadId }: { leadId: number }) {

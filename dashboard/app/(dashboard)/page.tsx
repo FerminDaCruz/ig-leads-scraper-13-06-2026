@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead } from '@/lib/supabase'
+import { HIDDEN_BY_DEFAULT } from '@/lib/constants'
 import { CalificarButtons } from '@/components/LeadActions'
+import { EditarUbicacion } from '@/components/EditarUbicacion'
 import { LocationFilter } from '@/components/LocationFilter'
 import { Card } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -27,7 +29,10 @@ export default async function CalificarPage({
     .limit(100)
 
   if (ubicacion) query = query.ilike('ubicaciones', `%${ubicacion}%`)
-  for (const loc of ocultar) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
+  // Ocultar las del filtro + las ocultas por defecto (ej. Bariloche), salvo que
+  // se esté filtrando explícitamente por esa ubicación.
+  const aOcultar = [...new Set([...ocultar, ...HIDDEN_BY_DEFAULT])].filter((loc) => loc !== ubicacion)
+  for (const loc of aOcultar) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
   const { data: leads } = await query
   const rows = (leads || []) as Lead[]
@@ -80,8 +85,8 @@ export default async function CalificarPage({
                   <TableCell className="hidden lg:table-cell text-navy dark:text-cream/80 max-w-[180px] truncate">
                     {lead.nichos || '—'}
                   </TableCell>
-                  <TableCell className="text-navy dark:text-cream/80 max-w-[160px] truncate">
-                    {lead.ubicaciones || '—'}
+                  <TableCell className="max-w-[160px] truncate">
+                    <EditarUbicacion leadId={lead.id} ubicacion={lead.ubicaciones} />
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant="count">{lead.veces_encontrado}</Badge>

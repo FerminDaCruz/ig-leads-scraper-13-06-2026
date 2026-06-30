@@ -24,6 +24,13 @@ export async function desCalificar(id: number, razon: string) {
   revalidatePath('/contactar')
 }
 
+export async function actualizarUbicacion(id: number, ubicacion: string) {
+  const supabase = getSupabase()
+  await supabase.from('leads').update({ ubicaciones: ubicacion.trim() }).eq('id', id)
+  revalidatePath('/')
+  revalidatePath('/contactar')
+}
+
 export async function marcarContactado(id: number) {
   const supabase = getSupabase()
   const now = new Date().toISOString()

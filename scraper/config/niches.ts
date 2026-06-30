@@ -1,6 +1,5 @@
 export const NICHES = [
   'alquiler turistico',
-  'cabaña',
   'cabañas',
   'complejo turistico',
   'hotel boutique',
