@@ -21,3 +21,26 @@ export interface Lead {
   found_via_niche: string | null
   found_via_location: string | null
 }
+
+export interface Niche {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface Location {
+  id: number
+  name: string
+  hidden_by_default: boolean
+  created_at: string
+}
+
+export interface Search {
+  id: number
+  query: string
+  niche: string
+  location: string
+  results_found: number
+  new_leads: number
+  ran_at: string
+}

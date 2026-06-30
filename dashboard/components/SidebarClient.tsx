@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiInstagram } from 'react-icons/si'
-import { FiCheckSquare, FiSend, FiClock, FiBarChart2, FiTrendingUp, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
+import { FiCheckSquare, FiSend, FiClock, FiBarChart2, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
 import { logout } from '@/lib/auth'
 import { useTheme } from 'next-themes'
 
@@ -19,6 +19,7 @@ const TABS = [
   { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
   { href: '/stats',     label: 'Reportes',   icon: FiBarChart2,   countKey: null                  },
   { href: '/metricas',  label: 'Métricas',   icon: FiTrendingUp,  countKey: null                  },
+  { href: '/scraper',   label: 'Scraper',    icon: FiSliders,     countKey: null                  },
 ]
 
 export function SidebarClient({ pendientes, listos }: Props) {
@@ -176,7 +177,7 @@ export function SidebarClient({ pendientes, listos }: Props) {
       </header>
 
       {/* ───────────── Isla de pestañas inferior · móvil (<lg) ───────────── */}
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-5">
+      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1 rounded-2xl glass-island grid grid-cols-6">
         {TABS.map((tab) => {
           const Icon = tab.icon
           const active = isActive(tab.href)
@@ -186,7 +187,7 @@ export function SidebarClient({ pendientes, listos }: Props) {
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
-              className={`relative flex flex-col items-center justify-center gap-1 rounded-xl mx-0.5 my-1.5 transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-1 rounded-xl my-1.5 min-w-0 transition-colors ${
                 active ? 'text-foreground' : 'text-muted'
               }`}
             >
@@ -200,7 +201,7 @@ export function SidebarClient({ pendientes, listos }: Props) {
                   </span>
                 )}
               </span>
-              <span className={`text-[0.62rem] leading-none tracking-tight ${active ? 'font-semibold' : 'font-medium'}`}>
+              <span className={`text-[0.6rem] leading-none tracking-tight max-w-full truncate px-0.5 ${active ? 'font-semibold' : 'font-medium'}`}>
                 {tab.label}
               </span>
             </Link>

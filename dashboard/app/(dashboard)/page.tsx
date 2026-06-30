@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead } from '@/lib/supabase'
-import { HIDDEN_BY_DEFAULT } from '@/lib/constants'
+import { getHiddenLocations } from '@/lib/hidden'
 import { CalificarButtons } from '@/components/LeadActions'
 import { EditarUbicacion } from '@/components/EditarUbicacion'
 import { LocationFilter } from '@/components/LocationFilter'
@@ -31,7 +31,8 @@ export default async function CalificarPage({
   if (ubicacion) query = query.ilike('ubicaciones', `%${ubicacion}%`)
   // Ocultar las del filtro + las ocultas por defecto (ej. Bariloche), salvo que
   // se esté filtrando explícitamente por esa ubicación.
-  const aOcultar = [...new Set([...ocultar, ...HIDDEN_BY_DEFAULT])].filter((loc) => loc !== ubicacion)
+  const hidden = await getHiddenLocations()
+  const aOcultar = [...new Set([...ocultar, ...hidden])].filter((loc) => loc !== ubicacion)
   for (const loc of aOcultar) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
   const { data: leads } = await query

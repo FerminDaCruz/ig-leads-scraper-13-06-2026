@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "scrape": "tsx scraper/index.ts",
+    "seed:config": "tsx scripts/seed-config.ts",
+    "fill:mayo": "tsx scripts/fill-tracker-mayo.ts",
+    "fill:junio": "tsx scripts/fill-tracker-junio.ts",
     "import": "tsx scripts/import-csv.ts",
     "report": "tsx scripts/weekly-report.ts",
     "daily-report": "tsx scripts/daily-report.ts"

@@ -5,3 +5,6 @@ dist/
 dashboard/.next/
 dashboard/node_modules/
 *.log
+
+# Datos de prospección (contienen teléfonos de dueños) — no subir al repo
+data/

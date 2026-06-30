@@ -8,14 +8,36 @@ function getSupabase() {
   })
 }
 
+// Lee los nichos desde la tabla `niches`; si la tabla no existe o está vacía,
+// cae al archivo de config para no romper el scraper antes de migrar.
+async function fetchNiches(supabase: ReturnType<typeof getSupabase>): Promise<string[]> {
+  const { data, error } = await supabase.from('niches').select('name')
+  if (error || !data || data.length === 0) {
+    const { NICHES } = await import('./config/niches')
+    return NICHES
+  }
+  return data.map((r) => r.name as string)
+}
+
+async function fetchLocations(supabase: ReturnType<typeof getSupabase>): Promise<string[]> {
+  const { data, error } = await supabase.from('locations').select('name')
+  if (error || !data || data.length === 0) {
+    const { LOCATIONS } = await import('./config/locations')
+    return LOCATIONS
+  }
+  return data.map((r) => r.name as string)
+}
+
 export async function getNextSearchPairs(limit: number = 3) {
   const supabase = getSupabase()
 
-  const { NICHES } = await import('./config/niches')
-  const { LOCATIONS } = await import('./config/locations')
+  const [niches, locations] = await Promise.all([
+    fetchNiches(supabase),
+    fetchLocations(supabase),
+  ])
 
-  const allPairs = NICHES.flatMap((niche) =>
-    LOCATIONS.map((location) => ({ niche, location }))
+  const allPairs = niches.flatMap((niche) =>
+    locations.map((location) => ({ niche, location }))
   )
 
   const { data: searches } = await supabase
