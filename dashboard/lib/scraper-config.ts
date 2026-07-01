@@ -34,8 +34,7 @@ export async function eliminarUbicacion(id: number) {
 export async function toggleUbicacionOculta(id: number, hidden: boolean) {
   const supabase = getSupabase()
   await supabase.from('locations').update({ hidden_by_default: hidden }).eq('id', id)
-  // Afecta qué leads se ocultan por defecto en Calificar y Contactar.
+  // Afecta qué leads se ocultan por defecto en las tabs de triage del pipeline.
   revalidatePath('/scraper')
-  revalidatePath('/')
-  revalidatePath('/contactar')
+  revalidatePath('/pipeline')
 }

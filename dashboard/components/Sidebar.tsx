@@ -4,19 +4,11 @@ import { SidebarClient } from './SidebarClient'
 export async function Sidebar() {
   const supabase = getSupabase()
 
-  const [pendientesRes, contactarRes] = await Promise.all([
-    supabase.from('leads').select('id', { count: 'exact', head: true }).is('calificado', null),
-    supabase
-      .from('leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('calificado', true)
-      .eq('contactado', false),
-  ])
+  // Leads sin calificar (badge del Pipeline).
+  const { count } = await supabase
+    .from('leads')
+    .select('id', { count: 'exact', head: true })
+    .is('calificado', null)
 
-  return (
-    <SidebarClient
-      pendientes={pendientesRes.count ?? 0}
-      listos={contactarRes.count ?? 0}
-    />
-  )
+  return <SidebarClient pendientes={count ?? 0} />
 }

@@ -36,3 +36,13 @@ export const FASE_LABEL: Record<Fase, string> = {
 export const FASE_MAX: Record<Fase, number> = { iniciado: 1, interesado: 7, calendly: 7 }
 
 export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).includes(v)
+
+// Avance rápido: a qué etapa pasa y con qué texto en el botón de la tarjeta.
+export const SIGUIENTE: Partial<Record<Etapa, { etapa: Etapa; label: string }>> = {
+  lead: { etapa: 'iniciado', label: 'Contactado' },
+  iniciado: { etapa: 'visto', label: 'Visto' },
+  visto: { etapa: 'interesado', label: 'Interesado' },
+  interesado: { etapa: 'calendly_enviado', label: 'Calendly' },
+  calendly_enviado: { etapa: 'agendado', label: 'Agendado' },
+  agendado: { etapa: 'cerrado', label: 'Cerrado' },
+}

@@ -30,15 +30,15 @@ function TriToggle({ value, onChange, disabled }: { value: boolean | null; onCha
     { v: true, l: 'Sí' }, { v: false, l: 'No' }, { v: null, l: '—' },
   ]
   return (
-    <div className="inline-flex rounded-xl border border-border overflow-hidden">
+    <div className={`inline-flex rounded-xl border border-border overflow-hidden transition-opacity ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
       {opts.map((o) => (
         <button
           key={o.l}
           type="button"
           disabled={disabled}
           onClick={() => onChange(o.v)}
-          className={`px-3 py-1.5 text-sm transition-colors ${
-            value === o.v ? 'bg-foreground text-background font-semibold' : 'text-muted hover:bg-foreground/5'
+          className={`px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed ${
+            value === o.v ? 'bg-foreground text-background font-semibold' : 'text-muted enabled:hover:bg-foreground/5'
           }`}
         >
           {o.l}
@@ -125,12 +125,14 @@ export function LeadFieldsEditor({ lead }: { lead: Lead }) {
           <span className="text-sm text-muted">¿Tiene web?</span>
           <TriToggle value={lead.tiene_web} onChange={(v) => save({ tiene_web: v })} />
         </div>
-        {lead.tiene_web === true && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted">¿Web mejorable?</span>
-            <TriToggle value={lead.web_mejorable} onChange={(v) => save({ web_mejorable: v })} />
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <span className={`text-sm ${lead.tiene_web === true ? 'text-muted' : 'text-muted/50'}`}>¿Web mejorable?</span>
+          <TriToggle
+            value={lead.web_mejorable}
+            onChange={(v) => save({ web_mejorable: v })}
+            disabled={lead.tiene_web !== true}
+          />
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted">¿Activo en redes?</span>
           <TriToggle value={lead.activo_redes} onChange={(v) => save({ activo_redes: v })} />

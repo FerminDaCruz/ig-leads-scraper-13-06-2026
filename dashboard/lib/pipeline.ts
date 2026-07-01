@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getSupabase } from './supabase'
-import { ETAPA_FECHA, FECHA_COLS, FASE_MAX, isEtapa, type Fase } from './pipeline-stages'
+import { ETAPAS, ETAPA_FECHA, FECHA_COLS, FASE_MAX, isEtapa, type Fase } from './pipeline-stages'
 
 function revalidar(id?: number) {
   revalidatePath('/pipeline')
@@ -21,6 +21,9 @@ export async function cambiarEtapa(id: number, etapa: string) {
     const row = data as unknown as Record<string, unknown> | null
     if (row && !row[col]) update[col] = new Date().toISOString()
   }
+  // De 'iniciado' en adelante el lead está contactado (sincroniza el booleano
+  // que usan Reportes/Métricas/Historial).
+  if (ETAPAS.indexOf(etapa) >= ETAPAS.indexOf('iniciado')) update.contactado = true
   await supabase.from('leads').update(update).eq('id', id)
   revalidar(id)
 }

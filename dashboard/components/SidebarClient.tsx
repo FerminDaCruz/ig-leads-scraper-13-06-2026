@@ -4,26 +4,23 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiInstagram } from 'react-icons/si'
-import { FiCheckSquare, FiSend, FiColumns, FiClock, FiBarChart2, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
+import { FiColumns, FiClock, FiBarChart2, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
 import { logout } from '@/lib/auth'
 import { useTheme } from 'next-themes'
 
 interface Props {
   pendientes: number
-  listos: number
 }
 
 const TABS = [
-  { href: '/',          label: 'Calificar',  icon: FiCheckSquare, countKey: 'pendientes' as const },
-  { href: '/contactar', label: 'Contactar',  icon: FiSend,        countKey: 'listos' as const     },
-  { href: '/pipeline',  label: 'Pipeline',   icon: FiColumns,     countKey: null                  },
+  { href: '/pipeline',  label: 'Pipeline',   icon: FiColumns,     countKey: 'pendientes' as const },
   { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
   { href: '/stats',     label: 'Reportes',   icon: FiBarChart2,   countKey: null                  },
   { href: '/metricas',  label: 'Métricas',   icon: FiTrendingUp,  countKey: null                  },
   { href: '/scraper',   label: 'Scraper',    icon: FiSliders,     countKey: null                  },
 ]
 
-export function SidebarClient({ pendientes, listos }: Props) {
+export function SidebarClient({ pendientes }: Props) {
   const [expanded, setExpanded] = useState(true)
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
@@ -41,7 +38,7 @@ export function SidebarClient({ pendientes, listos }: Props) {
     localStorage.setItem('sidebar-expanded', String(next))
   }
 
-  const counts = { pendientes, listos }
+  const counts = { pendientes }
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
@@ -178,7 +175,7 @@ export function SidebarClient({ pendientes, listos }: Props) {
       </header>
 
       {/* ───────────── Isla de pestañas inferior · móvil (<lg) ───────────── */}
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-0.5 rounded-2xl glass-island grid grid-cols-7">
+      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-5">
         {TABS.map((tab) => {
           const Icon = tab.icon
           const active = isActive(tab.href)
@@ -192,17 +189,17 @@ export function SidebarClient({ pendientes, listos }: Props) {
                 active ? 'text-foreground' : 'text-muted'
               }`}
             >
-              <span className={`relative grid place-items-center h-7 w-7 rounded-xl transition-colors ${
+              <span className={`relative grid place-items-center h-8 w-8 rounded-xl transition-colors ${
                 active ? 'bg-foreground/[0.08]' : ''
               }`}>
-                <Icon size={18} />
+                <Icon size={19} />
                 {count !== null && count > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[0.9rem] h-3.5 px-1 grid place-items-center text-[0.55rem] font-bold tnum rounded-full bg-foreground text-background">
+                  <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 grid place-items-center text-[0.6rem] font-bold tnum rounded-full bg-foreground text-background">
                     {count > 99 ? '99' : count}
                   </span>
                 )}
               </span>
-              <span className={`text-[0.55rem] leading-none tracking-tight max-w-full truncate px-0.5 ${active ? 'font-semibold' : 'font-medium'}`}>
+              <span className={`text-[0.62rem] leading-none tracking-tight max-w-full truncate px-0.5 ${active ? 'font-semibold' : 'font-medium'}`}>
                 {tab.label}
               </span>
             </Link>

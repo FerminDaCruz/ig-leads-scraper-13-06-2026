@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useTransition } from 'react'
 import { Lead } from '@/lib/supabase'
 import { cambiarEtapa } from '@/lib/pipeline'
-import { ETAPAS, ETAPA_LABEL, type Etapa } from '@/lib/pipeline-stages'
+import { ETAPAS, ETAPA_LABEL, SIGUIENTE, type Etapa } from '@/lib/pipeline-stages'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiChevronDown, FiMapPin, FiPhone, FiGlobe, FiMessageCircle } from 'react-icons/fi'
+import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight } from 'react-icons/fi'
 
 interface Props {
   lead: Lead
@@ -23,17 +23,26 @@ interface Props {
 
 export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount }: Props) {
   const [isPending, startTransition] = useTransition()
+  const next = SIGUIENTE[lead.etapa as Etapa]
 
   return (
-    <div className="flex items-center gap-2 p-3 rounded-2xl border border-border bg-card/60 backdrop-blur-sm hover:bg-foreground/[0.03] transition-colors">
-      <Link href={`/pipeline/${lead.id}`} className="flex-1 min-w-0">
+    <div className="relative flex items-center gap-2 p-3 rounded-2xl border border-border bg-card/60 backdrop-blur-sm hover:bg-foreground/[0.03] transition-colors">
+      {/* Click en el resto de la card → detalle */}
+      <Link href={`/pipeline/${lead.id}`} aria-label={`Abrir ${lead.username}`} className="absolute inset-0 rounded-2xl" />
+
+      {/* Info (los clics pasan al overlay, salvo el nombre) */}
+      <div className="relative flex-1 min-w-0 pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground truncate">
+          <a
+            href={lead.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto font-semibold text-foreground truncate hover:underline underline-offset-2 decoration-foreground/40"
+          >
             {lead.nombre_empresa || `@${lead.username}`}
-          </span>
-          {lead.nombre_empresa && (
-            <span className="text-xs text-muted truncate">@{lead.username}</span>
-          )}
+          </a>
+          {lead.nombre_empresa && <span className="text-xs text-muted truncate">@{lead.username}</span>}
         </div>
         <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted flex-wrap">
           {lead.ubicaciones && (
@@ -55,29 +64,42 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount }: P
             </span>
           )}
         </div>
-      </Link>
+      </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          disabled={isPending}
-          className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-foreground/[0.06] text-foreground hover:bg-foreground/10 transition-colors disabled:opacity-50"
-        >
-          {ETAPA_LABEL[lead.etapa as Etapa] ?? lead.etapa}
-          <FiChevronDown size={13} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Mover a etapa</DropdownMenuLabel>
-          {ETAPAS.map((e) => (
-            <DropdownMenuItem
-              key={e}
-              onClick={() => startTransition(() => cambiarEtapa(lead.id, e))}
-              className={e === lead.etapa ? 'font-semibold text-foreground' : ''}
-            >
-              {ETAPA_LABEL[e]}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Acciones */}
+      <div className="relative pointer-events-auto shrink-0 flex items-center gap-1.5">
+        {next && (
+          <button
+            onClick={() => startTransition(() => cambiarEtapa(lead.id, next.etapa))}
+            disabled={isPending}
+            title={`Pasar a ${ETAPA_LABEL[next.etapa]}`}
+            className="inline-flex items-center gap-0.5 pl-2.5 pr-1.5 py-1.5 rounded-xl text-xs font-semibold bg-foreground text-background hover:opacity-90 active:scale-[0.97] transition disabled:opacity-50"
+          >
+            {next.label} <FiChevronRight size={13} />
+          </button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            disabled={isPending}
+            title="Mover a etapa"
+            className="grid place-items-center h-8 w-8 rounded-xl text-muted hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+          >
+            <FiMoreVertical size={16} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Mover a etapa</DropdownMenuLabel>
+            {ETAPAS.map((e) => (
+              <DropdownMenuItem
+                key={e}
+                onClick={() => startTransition(() => cambiarEtapa(lead.id, e))}
+                className={e === lead.etapa ? 'font-semibold text-foreground' : ''}
+              >
+                {ETAPA_LABEL[e]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   )
 }
