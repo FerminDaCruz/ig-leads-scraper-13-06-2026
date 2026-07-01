@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import { getSupabase } from '@/lib/supabase'
-import { ETAPAS } from '@/lib/pipeline-stages'
+import { ETAPAS, DEFAULT_KPIS, KPI_ETAPAS, kpiEsNumero } from '@/lib/pipeline-stages'
+import { CopyReport } from '@/components/CopyReport'
+import { KpiEditor } from '@/components/metricas/KpiEditor'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +15,14 @@ function pct(a: number, b: number) {
 }
 function parseList(t: string) {
   return (t || '').split(',').map((s) => s.trim()).filter(Boolean)
+}
+function avgDays(pairs: { a: string | null; b: string | null }[]): string {
+  const diffs = pairs
+    .filter((p) => p.a && p.b)
+    .map((p) => (new Date(p.b!).getTime() - new Date(p.a!).getTime()) / 86400000)
+  if (diffs.length === 0) return '—'
+  const avg = diffs.reduce((s, d) => s + d, 0) / diffs.length
+  return avg < 1 ? '< 1 día' : `${Math.round(avg * 10) / 10} días`
 }
 
 const RAZON_LABELS: Record<string, string> = {
@@ -42,6 +52,10 @@ function monthRange(mes: string) {
 // Etapas >= la dada (para contar "alcanzó esta etapa" por etapa actual)
 const reachedFrom = (etapa: string) => ETAPAS.slice((ETAPAS as readonly string[]).indexOf(etapa))
 
+// Mínimo de leads encontrados para que un nicho/ubicación cuente en las tablas.
+const MIN_TOTAL = 10
+const TOP_N = 10
+
 interface GroupStat { name: string; total: number; calificados: number; contactados: number; rate: number }
 function buildGroupStats(
   leads: { nichos: string; ubicaciones: string; calificado: boolean | null; contactado: boolean }[],
@@ -59,9 +73,8 @@ function buildGroupStats(
   }
   return Array.from(map.entries())
     .map(([name, s]) => ({ name, ...s, rate: s.total > 0 ? Math.round((s.calificados / s.total) * 100) : 0 }))
-    .filter((s) => s.total >= 2)
+    .filter((s) => s.total >= MIN_TOTAL)
     .sort((a, b) => b.rate - a.rate)
-    .slice(0, 15)
 }
 
 const FUNNEL = [
@@ -72,16 +85,6 @@ const FUNNEL = [
   { label: 'Agendados', etapa: 'agendado', dateCol: 'agendado_at', color: 'bg-green-700' },
   { label: 'Cerrados', etapa: 'cerrado', dateCol: 'cerrado_at', color: 'bg-emerald-800' },
 ]
-
-// Metas (KPI) como % sobre iniciados. Iniciados es la base (sin meta).
-const KPI_INICIADOS: Record<string, number | null> = {
-  iniciado: null,
-  visto: 30,
-  interesado: 6,
-  calendly_enviado: 3,
-  agendado: 2,
-  cerrado: 1,
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function MetricasPage({
@@ -94,6 +97,15 @@ export default async function MetricasPage({
   const range = esMes ? monthRange(mes!) : null
   const supabase = getSupabase()
 
+  // Metas (KPI) del mes seleccionado; en "Todos" se usan los valores por defecto.
+  const kpiMap: Record<string, number> = { ...DEFAULT_KPIS }
+  if (esMes) {
+    const { data: kpiRows } = await supabase.from('kpis').select('etapa, valor').eq('mes', mes!)
+    for (const r of (kpiRows || []) as { etapa: string; valor: number }[]) {
+      if (KPI_ETAPAS.includes(r.etapa)) kpiMap[r.etapa] = Number(r.valor)
+    }
+  }
+
   // Conteos del funnel (por etapa alcanzada si "Todos"; por fecha en el mes si hay mes)
   const funnelCounts = await Promise.all(
     FUNNEL.map(async (s) => {
@@ -105,18 +117,41 @@ export default async function MetricasPage({
     })
   )
 
-  // Overview + datos para tablas / heatmap
-  const [totalRes, pendingRes, calRes, descRes, reasonsRes, allLeadsRes, searchesRes, iniciadosRes] =
-    await Promise.all([
-      supabase.from('leads').select('id', { count: 'exact', head: true }),
-      supabase.from('leads').select('id', { count: 'exact', head: true }).is('calificado', null),
-      supabase.from('leads').select('id', { count: 'exact', head: true }).eq('calificado', true),
-      supabase.from('leads').select('id', { count: 'exact', head: true }).eq('calificado', false),
-      supabase.from('leads').select('descarte_razon').eq('calificado', false),
-      supabase.from('leads').select('nichos, ubicaciones, calificado, contactado'),
-      supabase.from('searches').select('id', { count: 'exact', head: true }),
-      supabase.from('leads').select('contacted_at').not('contacted_at', 'is', null),
-    ])
+  // Overview + datos para tablas / heatmap / reporte
+  const [
+    totalRes,
+    pendingRes,
+    calRes,
+    descRes,
+    reasonsRes,
+    allLeadsRes,
+    searchesRes,
+    iniciadosRes,
+    reviewTimeRes,
+    contactTimeRes,
+    searchesListRes,
+  ] = await Promise.all([
+    supabase.from('leads').select('id', { count: 'exact', head: true }),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).is('calificado', null),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).eq('calificado', true),
+    supabase.from('leads').select('id', { count: 'exact', head: true }).eq('calificado', false),
+    supabase.from('leads').select('descarte_razon').eq('calificado', false),
+    supabase.from('leads').select('nichos, ubicaciones, calificado, contactado'),
+    supabase.from('searches').select('id', { count: 'exact', head: true }),
+    supabase.from('leads').select('contacted_at').not('contacted_at', 'is', null),
+    // Tiempo descubrimiento → revisión (por qualified_at en el mes / histórico)
+    (range
+      ? supabase.from('leads').select('first_seen_at, qualified_at').not('qualified_at', 'is', null).gte('qualified_at', range.start).lt('qualified_at', range.end)
+      : supabase.from('leads').select('first_seen_at, qualified_at').not('qualified_at', 'is', null)),
+    // Tiempo calificación → contacto (por contacted_at en el mes / histórico)
+    (range
+      ? supabase.from('leads').select('qualified_at, contacted_at').not('contacted_at', 'is', null).gte('contacted_at', range.start).lt('contacted_at', range.end)
+      : supabase.from('leads').select('qualified_at, contacted_at').not('contacted_at', 'is', null)),
+    // Búsquedas (del mes / histórico), ordenadas por leads nuevos
+    (range
+      ? supabase.from('searches').select('niche, location, results_found, new_leads, ran_at').gte('ran_at', range.start).lt('ran_at', range.end).order('new_leads', { ascending: false }).limit(100)
+      : supabase.from('searches').select('niche, location, results_found, new_leads, ran_at').order('new_leads', { ascending: false }).limit(100)),
+  ])
 
   const total = totalRes.count ?? 0
   const sinCalificar = pendingRes.count ?? 0
@@ -136,6 +171,16 @@ export default async function MetricasPage({
   const allLeads = (allLeadsRes.data || []) as { nichos: string; ubicaciones: string; calificado: boolean | null; contactado: boolean }[]
   const nichoStats = buildGroupStats(allLeads, 'nichos')
   const ubicacionStats = buildGroupStats(allLeads, 'ubicaciones')
+  // Mejores = mayor % de calificación · Peores = menor %
+  const nichoBest = nichoStats.slice(0, TOP_N)
+  const nichoWorst = nichoStats.slice().reverse().slice(0, TOP_N)
+  const ubicBest = ubicacionStats.slice(0, TOP_N)
+  const ubicWorst = ubicacionStats.slice().reverse().slice(0, TOP_N)
+
+  // Tiempos promedio (reporte)
+  const reviewTime = avgDays((reviewTimeRes.data || []).map((r) => ({ a: r.first_seen_at, b: r.qualified_at })))
+  const contactTime = avgDays((contactTimeRes.data || []).map((r) => ({ a: r.qualified_at, b: r.contacted_at })))
+  const searchList = (searchesListRes.data || []) as { niche: string; location: string; results_found: number; new_leads: number; ran_at: string }[]
 
   // ── Heatmap: iniciados por día/mes (siempre histórico completo) ──
   const iniciados = (iniciadosRes.data || []) as { contacted_at: string }[]
@@ -168,12 +213,42 @@ export default async function MetricasPage({
   const mesOptions = months
 
   const iniciadosBase = funnelCounts[0] // para % sobre iniciados
+  const vistaLabel = esMes ? monthLabel(mes!) : 'histórico completo'
+
+  // ── Texto del reporte (Copiar) ──
+  const reporteTexto = `=== MÉTRICAS — IG LEADS ===
+Vista: ${vistaLabel}
+
+BASE DE DATOS
+- Total: ${total}  |  Sin calificar: ${sinCalificar}  |  Calificados: ${calificados}  |  Descartados: ${descartados}
+
+EMBUDO DE ETAPAS (${esMes ? 'entraron en el mes' : 'alcanzaron la etapa'})
+${FUNNEL.map((s, i) => {
+  const n = funnelCounts[i]
+  const p = iniciadosBase > 0 ? Math.round((n / iniciadosBase) * 100) : 0
+  const kpi = kpiMap[s.etapa]
+  const esNum = kpiEsNumero(s.etapa)
+  const meets = esNum ? n >= kpi : p >= kpi
+  const meta = `  meta ${esNum ? `≥${kpi}` : `≥${kpi}%`}  ${meets ? '✓' : '✗'}`
+  return `- ${s.label}: ${n} (${i === 0 ? '100%' : `${p}%`} s/ iniciados)${meta}`
+}).join('\n')}
+
+TIEMPOS PROMEDIO
+- Descubrimiento → revisión: ${reviewTime}
+- Calificación → contacto: ${contactTime}
+
+MOTIVOS DE DESCARTE
+${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') || '- Sin datos'}
+`
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-navy dark:text-cream">Métricas</h1>
-        <p className="text-muted text-sm mt-1">Embudo por etapas · {esMes ? monthLabel(mes!) : 'histórico completo'}</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-navy dark:text-cream">Métricas</h1>
+          <p className="text-muted text-sm mt-1">Embudo, reportes y rendimiento · {vistaLabel}</p>
+        </div>
+        <CopyReport text={reporteTexto} />
       </div>
 
       {/* Filtro por mes */}
@@ -218,7 +293,7 @@ export default async function MetricasPage({
         <CardHeader className="pb-2">
           <CardTitle>Embudo de etapas {esMes && <span className="capitalize font-normal text-muted">· {monthLabel(mes!)}</span>}</CardTitle>
           <CardDescription>
-            {esMes ? 'Entraron a cada etapa durante el mes' : 'Alcanzaron cada etapa (histórico)'} · % sobre Iniciados vs. meta (KPI)
+            {esMes ? 'Entraron a cada etapa durante el mes' : 'Alcanzaron cada etapa (histórico)'} · Iniciados es meta por número total; el resto, % sobre Iniciados
           </CardDescription>
         </CardHeader>
         <Table className="min-w-[460px]">
@@ -235,30 +310,64 @@ export default async function MetricasPage({
             {FUNNEL.map((s, i) => {
               const n = funnelCounts[i]
               const p = iniciadosBase > 0 ? Math.round((n / iniciadosBase) * 100) : 0
-              const kpi = KPI_INICIADOS[s.etapa]
-              const meets = kpi == null ? null : p >= kpi
+              const esNum = kpiEsNumero(s.etapa)
+              const kpi = kpiMap[s.etapa]
+              const meets = esNum ? n >= kpi : p >= kpi
               return (
                 <TableRow key={s.label}>
                   <TableCell className="font-medium text-navy dark:text-cream">{s.label}</TableCell>
                   <TableCell className="text-center font-bold text-navy dark:text-cream tnum">{n.toLocaleString('es-AR')}</TableCell>
                   <TableCell className="text-center">
-                    <span className={`font-bold tnum ${meets === null ? 'text-foreground' : meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                    <span className={`font-bold tnum ${esNum ? 'text-foreground' : meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                       {i === 0 ? '100%' : `${p}%`}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center text-muted tnum">{kpi == null ? '—' : `≥${kpi}%`}</TableCell>
+                  <TableCell className="text-center text-muted tnum">{esNum ? `≥${kpi.toLocaleString('es-AR')}` : `≥${kpi}%`}</TableCell>
                   <TableCell className="text-center">
-                    {meets === null ? (
-                      <span className="text-muted">—</span>
-                    ) : (
-                      <Badge variant={meets ? 'success' : 'destructive'}>{meets ? '✓ Cumple' : '✗ No cumple'}</Badge>
-                    )}
+                    <Badge variant={meets ? 'success' : 'destructive'}>{meets ? '✓ Cumple' : '✗ No cumple'}</Badge>
                   </TableCell>
                 </TableRow>
               )
             })}
           </TableBody>
         </Table>
+      </Card>
+
+      {/* Metas (KPI) — editables por mes */}
+      {esMes ? (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle>Metas del mes (KPI) · <span className="capitalize">{monthLabel(mes!)}</span></CardTitle>
+            <CardDescription>Iniciados es un número total; el resto es el % objetivo sobre los iniciados del mes</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            <KpiEditor mes={mes!} valores={kpiMap} />
+          </CardContent>
+        </Card>
+      ) : (
+        <p className="text-xs text-muted mb-4 -mt-1">
+          Seleccioná un mes para editar sus metas (KPI). En «Todos» se muestran los valores por defecto.
+        </p>
+      )}
+
+      {/* Tiempos promedio */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle>Tiempos promedio {esMes && <span className="capitalize font-normal text-muted">· {monthLabel(mes!)}</span>}</CardTitle>
+          <CardDescription>Velocidad de revisión y de contacto</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 pt-2 grid grid-cols-2 gap-3">
+          <div className="bg-surface dark:bg-navy rounded-xl p-3">
+            <p className="text-xs text-muted mb-1">Descubrimiento → revisión</p>
+            <p className="text-2xl font-bold text-navy dark:text-cream">{reviewTime}</p>
+            <p className="text-xs text-muted mt-1">desde que aparece hasta calificarlo</p>
+          </div>
+          <div className="bg-surface dark:bg-navy rounded-xl p-3">
+            <p className="text-xs text-muted mb-1">Calificación → contacto</p>
+            <p className="text-2xl font-bold text-navy dark:text-cream">{contactTime}</p>
+            <p className="text-xs text-muted mt-1">desde calificar hasta iniciar</p>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Calendario: iniciados por día/mes */}
@@ -370,16 +479,18 @@ export default async function MetricasPage({
         </Card>
       )}
 
-      {/* Tablas de rendimiento */}
+      {/* Tablas de rendimiento — mejores y peores nichos/ubicaciones */}
       <div className="grid lg:grid-cols-2 gap-4">
         {([
-          { title: 'Mejores nichos', head: 'Nicho', stats: nichoStats },
-          { title: 'Mejores ubicaciones', head: 'Ubicación', stats: ubicacionStats },
+          { title: 'Mejores nichos', desc: 'Mayor % de calificación', head: 'Nicho', stats: nichoBest },
+          { title: 'Peores nichos', desc: 'Menor % de calificación', head: 'Nicho', stats: nichoWorst },
+          { title: 'Mejores ubicaciones', desc: 'Mayor % de calificación', head: 'Ubicación', stats: ubicBest },
+          { title: 'Peores ubicaciones', desc: 'Menor % de calificación', head: 'Ubicación', stats: ubicWorst },
         ] as const).map((t) => (
           <Card key={t.title} className="overflow-x-auto">
             <CardHeader>
               <CardTitle>{t.title}</CardTitle>
-              <CardDescription>% = calificados / total encontrados</CardDescription>
+              <CardDescription>{t.desc} · mín. {MIN_TOTAL} encontrados</CardDescription>
             </CardHeader>
             <Table>
               <TableHeader>
@@ -394,7 +505,7 @@ export default async function MetricasPage({
               </TableHeader>
               <TableBody>
                 {t.stats.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted py-8">Sin datos suficientes</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted py-8">Sin datos suficientes (mín. {MIN_TOTAL})</TableCell></TableRow>
                 ) : (
                   t.stats.map((s, i) => (
                     <TableRow key={s.name}>
@@ -413,9 +524,53 @@ export default async function MetricasPage({
         ))}
       </div>
 
-      <p className="text-xs text-muted mt-6 text-center">
-        Búsquedas totales registradas: <span className="font-semibold text-navy dark:text-cream">{totalSearches.toLocaleString('es-AR')}</span>
-      </p>
+      {/* Búsquedas */}
+      <Card className="overflow-x-auto mt-4">
+        <CardHeader>
+          <CardTitle>Búsquedas {esMes ? <span className="capitalize font-normal text-muted">· {monthLabel(mes!)}</span> : ''}</CardTitle>
+          <CardDescription>
+            Ordenadas por leads nuevos · {esMes ? `${searchList.length} en el mes` : `${totalSearches.toLocaleString('es-AR')} registradas (top ${searchList.length})`}
+          </CardDescription>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nicho</TableHead>
+              <TableHead>Ubicación</TableHead>
+              <TableHead className="text-center">Encontrados</TableHead>
+              <TableHead className="text-center">Nuevos</TableHead>
+              <TableHead className="hidden md:table-cell">Fecha y hora</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {searchList.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted py-10">Sin búsquedas en este período</TableCell>
+              </TableRow>
+            ) : (
+              searchList.map((s, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-navy dark:text-cream/80">{s.niche}</TableCell>
+                  <TableCell className="text-navy dark:text-cream/80">{s.location}</TableCell>
+                  <TableCell className="text-center text-muted">{s.results_found}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={s.new_leads > 0 ? 'success' : 'secondary'}>{s.new_leads}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted text-xs">
+                    {new Date(s.ran_at).toLocaleString('es-AR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: AR_TZ,
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </main>
   )
 }

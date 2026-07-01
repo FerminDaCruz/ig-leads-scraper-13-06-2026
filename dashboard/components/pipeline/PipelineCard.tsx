@@ -12,21 +12,34 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight } from 'react-icons/fi'
+import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight, FiClock, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi'
+
+interface SegEstado {
+  estado: 'hecho' | 'pendiente' | 'vencido'
+  dias: number
+}
 
 interface Props {
   lead: Lead
   ownerNumero: string | null
   ownerCount: number
   followupCount: number
+  seg?: SegEstado
 }
 
-export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount }: Props) {
+export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, seg }: Props) {
   const [isPending, startTransition] = useTransition()
   const next = SIGUIENTE[lead.etapa as Etapa]
+  const vencido = seg?.estado === 'vencido'
 
   return (
-    <div className="relative flex items-center gap-2 p-3 rounded-2xl border border-border bg-card/60 backdrop-blur-sm hover:bg-foreground/[0.03] transition-colors">
+    <div
+      className={`relative flex items-center gap-2 p-3 rounded-2xl border backdrop-blur-sm transition-colors ${
+        vencido
+          ? 'border-amber-400/70 bg-amber-50/70 dark:bg-amber-500/[0.07] hover:bg-amber-50 dark:hover:bg-amber-500/10'
+          : 'border-border bg-card/60 hover:bg-foreground/[0.03]'
+      }`}
+    >
       {/* Click en el resto de la card → detalle */}
       <Link href={`/pipeline/${lead.id}`} aria-label={`Abrir ${lead.username}`} className="absolute inset-0 rounded-2xl" />
 
@@ -61,6 +74,21 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount }: P
           {followupCount > 0 && (
             <span className="inline-flex items-center gap-1">
               <FiMessageCircle size={11} /> {followupCount}
+            </span>
+          )}
+          {seg?.estado === 'vencido' && (
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+              <FiAlertTriangle size={11} /> Seguimiento vencido · hace {seg.dias} d
+            </span>
+          )}
+          {seg?.estado === 'pendiente' && (
+            <span className="inline-flex items-center gap-1">
+              <FiClock size={11} /> Seguimiento en {seg.dias} d
+            </span>
+          )}
+          {seg?.estado === 'hecho' && (
+            <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+              <FiCheckCircle size={11} /> Seguimiento hecho
             </span>
           )}
         </div>

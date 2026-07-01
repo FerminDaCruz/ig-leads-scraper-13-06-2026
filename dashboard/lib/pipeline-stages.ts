@@ -37,6 +37,29 @@ export const FASE_MAX: Record<Fase, number> = { iniciado: 1, interesado: 7, cale
 
 export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).includes(v)
 
+// ── Metas (KPI) del embudo ────────────────────────────────────────────────────
+// 'iniciado' es un número total; el resto es un % sobre los iniciados del mes.
+export type KpiTipo = 'num' | 'pct'
+export const KPI_META: { etapa: string; label: string; tipo: KpiTipo }[] = [
+  { etapa: 'iniciado', label: 'Iniciados', tipo: 'num' },
+  { etapa: 'visto', label: 'Vistos', tipo: 'pct' },
+  { etapa: 'interesado', label: 'Interesados', tipo: 'pct' },
+  { etapa: 'calendly_enviado', label: 'Calendly', tipo: 'pct' },
+  { etapa: 'agendado', label: 'Agendados', tipo: 'pct' },
+  { etapa: 'cerrado', label: 'Cerrados', tipo: 'pct' },
+]
+export const kpiEsNumero = (etapa: string) => etapa === 'iniciado'
+// Valores por defecto (fallback cuando un mes no tiene metas propias cargadas).
+export const DEFAULT_KPIS: Record<string, number> = {
+  iniciado: 100,
+  visto: 30,
+  interesado: 6,
+  calendly_enviado: 3,
+  agendado: 2,
+  cerrado: 1,
+}
+export const KPI_ETAPAS = KPI_META.map((k) => k.etapa)
+
 // Avance rápido: a qué etapa pasa y con qué texto en el botón de la tarjeta.
 export const SIGUIENTE: Partial<Record<Etapa, { etapa: Etapa; label: string }>> = {
   lead: { etapa: 'iniciado', label: 'Contactado' },

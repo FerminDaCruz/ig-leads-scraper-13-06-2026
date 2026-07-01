@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiInstagram } from 'react-icons/si'
-import { FiColumns, FiClock, FiBarChart2, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
+import { FiColumns, FiClock, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
 import { logout } from '@/lib/auth'
 import { useTheme } from 'next-themes'
 
@@ -15,7 +15,6 @@ interface Props {
 const TABS = [
   { href: '/pipeline',  label: 'Pipeline',   icon: FiColumns,     countKey: 'pendientes' as const },
   { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
-  { href: '/stats',     label: 'Reportes',   icon: FiBarChart2,   countKey: null                  },
   { href: '/metricas',  label: 'Métricas',   icon: FiTrendingUp,  countKey: null                  },
   { href: '/scraper',   label: 'Scraper',    icon: FiSliders,     countKey: null                  },
 ]
@@ -175,7 +174,7 @@ export function SidebarClient({ pendientes }: Props) {
       </header>
 
       {/* ───────────── Isla de pestañas inferior · móvil (<lg) ───────────── */}
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-5">
+      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-4">
         {TABS.map((tab) => {
           const Icon = tab.icon
           const active = isActive(tab.href)
