@@ -13,6 +13,8 @@ import Link from 'next/link'
 function pct(a: number, b: number) {
   return b === 0 ? '—' : `${Math.round((a / b) * 100)}%`
 }
+// Porcentaje sin redondear a entero: hasta 1 decimal (ej. 13,5% · 20,8%).
+const fmtPct = (v: number) => `${v.toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
 function parseList(t: string) {
   return (t || '').split(',').map((s) => s.trim()).filter(Boolean)
 }
@@ -225,12 +227,12 @@ BASE DE DATOS
 EMBUDO DE ETAPAS (${esMes ? 'entraron en el mes' : 'alcanzaron la etapa'})
 ${FUNNEL.map((s, i) => {
   const n = funnelCounts[i]
-  const p = iniciadosBase > 0 ? Math.round((n / iniciadosBase) * 100) : 0
+  const p = iniciadosBase > 0 ? (n / iniciadosBase) * 100 : 0
   const kpi = kpiMap[s.etapa]
   const esNum = kpiEsNumero(s.etapa)
   const meets = esNum ? n >= kpi : p >= kpi
   const meta = `  meta ${esNum ? `≥${kpi}` : `≥${kpi}%`}  ${meets ? '✓' : '✗'}`
-  return `- ${s.label}: ${n} (${i === 0 ? '100%' : `${p}%`} s/ iniciados)${meta}`
+  return `- ${s.label}: ${n} (${fmtPct(p)} s/ iniciados)${meta}`
 }).join('\n')}
 
 TIEMPOS PROMEDIO
@@ -309,7 +311,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
           <TableBody>
             {FUNNEL.map((s, i) => {
               const n = funnelCounts[i]
-              const p = iniciadosBase > 0 ? Math.round((n / iniciadosBase) * 100) : 0
+              const p = iniciadosBase > 0 ? (n / iniciadosBase) * 100 : 0
               const esNum = kpiEsNumero(s.etapa)
               const kpi = kpiMap[s.etapa]
               const meets = esNum ? n >= kpi : p >= kpi
@@ -319,7 +321,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
                   <TableCell className="text-center font-bold text-navy dark:text-cream tnum">{n.toLocaleString('es-AR')}</TableCell>
                   <TableCell className="text-center">
                     <span className={`font-bold tnum ${esNum ? 'text-foreground' : meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                      {i === 0 ? '100%' : `${p}%`}
+                      {fmtPct(p)}
                     </span>
                   </TableCell>
                   <TableCell className="text-center text-muted tnum">{esNum ? `≥${kpi.toLocaleString('es-AR')}` : `≥${kpi}%`}</TableCell>

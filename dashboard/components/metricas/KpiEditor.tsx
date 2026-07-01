@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { guardarKpis } from '@/lib/kpis'
 import { KPI_META } from '@/lib/pipeline-stages'
-import { FiSave, FiCheck } from 'react-icons/fi'
+import { FiSave, FiCheck, FiAlertTriangle } from 'react-icons/fi'
 
 export function KpiEditor({ mes, valores }: { mes: string; valores: Record<string, number> }) {
   const [vals, setVals] = useState<Record<string, string>>(
@@ -11,6 +11,7 @@ export function KpiEditor({ mes, valores }: { mes: string; valores: Record<strin
   )
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const dirty = KPI_META.some((k) => Number(vals[k.etapa]) !== Number(valores[k.etapa]))
 
@@ -18,10 +19,15 @@ export function KpiEditor({ mes, valores }: { mes: string; valores: Record<strin
     const num: Record<string, number> = {}
     for (const k of KPI_META) num[k.etapa] = Number(vals[k.etapa])
     setSaved(false)
+    setError(null)
     startTransition(async () => {
-      await guardarKpis(mes, num)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      const res = await guardarKpis(mes, num)
+      if (res.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2500)
+      } else {
+        setError(res.error || 'No se pudo guardar')
+      }
     })
   }
 
@@ -58,8 +64,14 @@ export function KpiEditor({ mes, valores }: { mes: string; valores: Record<strin
           {saved ? <FiCheck size={15} /> : <FiSave size={15} />}
           {saved ? 'Guardado' : 'Guardar metas'}
         </button>
-        {dirty && !saved && <span className="text-xs text-muted">Cambios sin guardar</span>}
+        {dirty && !saved && !error && <span className="text-xs text-muted">Cambios sin guardar</span>}
       </div>
+      {error && (
+        <p className="inline-flex items-start gap-1.5 text-xs text-red-500 dark:text-red-400">
+          <FiAlertTriangle size={13} className="mt-0.5 shrink-0" />
+          <span>No se guardó: {error}. ¿Corriste <code className="font-mono">scripts/schema-kpis.sql</code> en Supabase?</span>
+        </p>
+      )}
     </div>
   )
 }
