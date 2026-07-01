@@ -20,6 +20,39 @@ export interface Lead {
   descarte_razon: string | null
   found_via_niche: string | null
   found_via_location: string | null
+  // Pipeline / CRM
+  nombre_empresa: string | null
+  tiene_web: boolean | null
+  web_mejorable: boolean | null
+  activo_redes: boolean | null
+  notas: string | null
+  etapa: string
+  visto_at: string | null
+  interesado_at: string | null
+  calendly_at: string | null
+  agendado_at: string | null
+  cerrado_at: string | null
+}
+
+export interface Owner {
+  id: number
+  lead_id: number
+  nombre: string | null
+  numero: string | null
+  source: string | null
+  created_at: string
+}
+
+export interface Followup {
+  id: number
+  lead_id: number
+  fase: string
+  indice: number
+  enviado: boolean
+  mensaje: string | null
+  fecha: string | null
+  source: string | null
+  created_at: string
 }
 
 export interface Niche {
