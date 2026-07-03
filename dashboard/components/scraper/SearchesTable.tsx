@@ -1,14 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { Search } from '@/lib/supabase'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { FiChevronDown } from 'react-icons/fi'
 
 const PAGE = 15
 
-export function SearchesTable({ searches }: { searches: Search[] }) {
+// La fecha llega ya formateada desde el server para evitar mismatch de hidratación
+// (el Intl de Node y el del navegador difieren en los espacios de la hora).
+export interface SearchRow {
+  id: number
+  niche: string
+  location: string
+  results_found: number
+  new_leads: number
+  fechaLabel: string
+}
+
+export function SearchesTable({ searches }: { searches: SearchRow[] }) {
   const [visibles, setVisibles] = useState(PAGE)
   const mostradas = searches.slice(0, visibles)
   const quedan = searches.length - mostradas.length
@@ -44,10 +54,7 @@ export function SearchesTable({ searches }: { searches: Search[] }) {
                   )}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell text-muted text-xs tnum">
-                  {new Date(s.ran_at).toLocaleString('es-AR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                    timeZone: 'America/Argentina/Buenos_Aires',
-                  })}
+                  {s.fechaLabel}
                 </TableCell>
               </TableRow>
             ))}

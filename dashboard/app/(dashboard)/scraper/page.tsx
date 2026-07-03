@@ -2,14 +2,14 @@ export const dynamic = 'force-dynamic'
 
 import { getSupabase, Niche, Location, Search } from '@/lib/supabase'
 import { NicheManager, LocationManager } from '@/components/ScraperConfig'
-import { SearchesTable } from '@/components/scraper/SearchesTable'
+import { SearchesTable, type SearchRow } from '@/components/scraper/SearchesTable'
 import { buildGroupStats, MIN_TOTAL, type GroupStat } from '@/lib/group-stats'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { FiTag, FiMapPin, FiSearch, FiAlertCircle, FiBarChart2 } from 'react-icons/fi'
 
-const TOP_N = 10
+const TOP_N = 5
 
 function StatsTable({ title, desc, head, stats }: { title: string; desc: string; head: string; stats: GroupStat[] }) {
   return (
@@ -65,6 +65,19 @@ export default async function ScraperPage() {
   const niches = (nichesRes.data || []) as Niche[]
   const locations = (locationsRes.data || []) as Location[]
   const searches = (searchesRes.data || []) as Search[]
+  // Fecha preformateada en el server (evita mismatch de hidratación por Intl).
+  const fechaFmt = new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  })
+  const searchRows: SearchRow[] = searches.map((s) => ({
+    id: s.id,
+    niche: s.niche,
+    location: s.location,
+    results_found: s.results_found,
+    new_leads: s.new_leads,
+    fechaLabel: fechaFmt.format(new Date(s.ran_at)),
+  }))
   const allLeads = (allLeadsRes.data || []) as { nichos: string; ubicaciones: string; calificado: boolean | null; contactado: boolean }[]
 
   // Rendimiento por nicho / ubicación (solo leads revisados).
@@ -156,7 +169,7 @@ export default async function ScraperPage() {
           <h2 className="font-semibold text-navy dark:text-cream">Búsquedas recientes</h2>
           <Badge variant="count">{searches.length}</Badge>
         </div>
-        <SearchesTable searches={searches} />
+        <SearchesTable searches={searchRows} />
       </Card>
     </main>
   )
