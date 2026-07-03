@@ -41,12 +41,12 @@ export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).
 // 'iniciado' es un número total; el resto es un % sobre los iniciados del mes.
 export type KpiTipo = 'num' | 'pct'
 export const KPI_META: { etapa: string; label: string; tipo: KpiTipo }[] = [
-  { etapa: 'iniciado', label: 'Iniciados', tipo: 'num' },
-  { etapa: 'visto', label: 'Vistos', tipo: 'pct' },
-  { etapa: 'interesado', label: 'Interesados', tipo: 'pct' },
-  { etapa: 'calendly_enviado', label: 'Calendly', tipo: 'pct' },
-  { etapa: 'agendado', label: 'Agendados', tipo: 'pct' },
-  { etapa: 'cerrado', label: 'Cerrados', tipo: 'pct' },
+  { etapa: 'iniciado', label: 'Iniciados (A)', tipo: 'num' },
+  { etapa: 'visto', label: 'OP · Apertura', tipo: 'pct' },
+  { etapa: 'interesado', label: 'PRR · Resp. positiva', tipo: 'pct' },
+  { etapa: 'calendly_enviado', label: 'CSR · Calendly', tipo: 'pct' },
+  { etapa: 'agendado', label: 'ABR · Agendas', tipo: 'pct' },
+  { etapa: 'cerrado', label: 'CR · Cierre', tipo: 'pct' },
 ]
 export const kpiEsNumero = (etapa: string) => etapa === 'iniciado'
 // Valores por defecto (fallback cuando un mes no tiene metas propias cargadas).
