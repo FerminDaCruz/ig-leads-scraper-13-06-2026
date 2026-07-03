@@ -4,6 +4,7 @@ import { getSupabase } from '@/lib/supabase'
 import { ETAPAS, DEFAULT_KPIS, KPI_ETAPAS, kpiEsNumero } from '@/lib/pipeline-stages'
 import { CopyReport } from '@/components/CopyReport'
 import { KpiConfig } from '@/components/metricas/KpiConfig'
+import { PeriodoPicker, type Semana } from '@/components/metricas/PeriodoPicker'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
@@ -45,6 +46,21 @@ function monthRange(mes: string) {
   return { start, end: `${ny}-${String(nm).padStart(2, '0')}-01T00:00:00-03:00` }
 }
 const daysInMonth = (mk: string) => { const [y, m] = mk.split('-').map(Number); return new Date(y, m, 0).getDate() }
+const pad = (n: number) => String(n).padStart(2, '0')
+const mesCortoFmt = new Intl.DateTimeFormat('es-AR', { month: 'short', timeZone: 'UTC' })
+function mesCorto(mk: string) { const [y, m] = mk.split('-').map(Number); return mesCortoFmt.format(new Date(Date.UTC(y, m - 1, 1))) }
+const diaLabelFmt = new Intl.DateTimeFormat('es-AR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+function diaLabel(mk: string, day: number) { const [y, m] = mk.split('-').map(Number); return diaLabelFmt.format(new Date(Date.UTC(y, m - 1, day))) }
+// Rangos de consulta en ISO (UTC) para un día / una semana de un mes ART.
+function dayRangeISO(mk: string, day: number) {
+  const startMs = new Date(`${mk}-${pad(day)}T00:00:00-03:00`).getTime()
+  return { start: new Date(startMs).toISOString(), end: new Date(startMs + 86400000).toISOString() }
+}
+function weekRangeISO(mk: string, startDay: number, endDay: number) {
+  const startMs = new Date(`${mk}-${pad(startDay)}T00:00:00-03:00`).getTime()
+  const endMs = new Date(`${mk}-${pad(endDay)}T00:00:00-03:00`).getTime() + 86400000
+  return { start: new Date(startMs).toISOString(), end: new Date(endMs).toISOString() }
+}
 
 // Etapas >= la dada (para contar "alcanzó esta etapa" por etapa actual)
 const reachedFrom = (etapa: string) => ETAPAS.slice((ETAPAS as readonly string[]).indexOf(etapa))
@@ -70,9 +86,9 @@ type Vista = (typeof VISTAS)[number]['key']
 export default async function MetricasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; vista?: string }>
+  searchParams: Promise<{ mes?: string; vista?: string; dia?: string; sem?: string }>
 }) {
-  const { mes: mesParam, vista: vistaParam } = await searchParams
+  const { mes: mesParam, vista: vistaParam, dia: diaParam, sem: semParam } = await searchParams
   const supabase = getSupabase()
 
   // Fecha actual (ART).
@@ -85,12 +101,50 @@ export default async function MetricasPage({
   const mes = esTodos ? null : mesParam && /^\d{4}-\d{2}$/.test(mesParam) ? mesParam : currentMonthKey
   const esMes = !esTodos
   const vista: Vista = esMes && (vistaParam === 'dia' || vistaParam === 'semana') ? vistaParam : 'mes'
-  const range = mes ? monthRange(mes) : null
 
-  // Prorrateo de valores absolutos según la vista (día/semana). Las tasas (%) no se prorratean.
-  const divisor = mes ? (vista === 'dia' ? daysInMonth(mes) : vista === 'semana' ? daysInMonth(mes) / 7 : 1) : 1
-  const prorate = (v: number) => v / divisor
-  const unidad = vista === 'dia' ? '/día' : vista === 'semana' ? '/sem' : ''
+  // ── Selección de día / semana ────────────────────────────────────────────────
+  const dim = mes ? daysInMonth(mes) : 30
+  const esMesActual = mes === currentMonthKey
+  const maxDay = mes ? (esMesActual ? curD : dim) : 0 // último día disponible (no futuro)
+  const todayDay = esMesActual ? curD : null
+
+  // Día seleccionado (por defecto: hoy si es el mes en curso, si no el último del mes).
+  let selDay = maxDay
+  if (vista === 'dia' && diaParam && /^\d{4}-\d{2}-\d{2}$/.test(diaParam) && diaParam.slice(0, 7) === mes) {
+    const d = Number(diaParam.slice(8, 10))
+    if (d >= 1 && d <= maxDay) selDay = d
+  }
+
+  // Semanas del mes (bloques de 7 días desde el día 1).
+  const weeksCount = Math.max(1, Math.ceil(dim / 7))
+  const weeks: Semana[] = Array.from({ length: weeksCount }, (_, i) => {
+    const startDay = 1 + 7 * i
+    const endDay = Math.min(7 + 7 * i, dim)
+    return { index: i, startDay, endDay, label: mes ? `${startDay}–${endDay} ${mesCorto(mes)}` : '', started: startDay <= maxDay }
+  })
+  let selWeek = Math.min(Math.max(0, Math.floor((maxDay - 1) / 7)), weeksCount - 1)
+  if (vista === 'semana' && semParam !== undefined) {
+    const w = Number(semParam)
+    if (Number.isInteger(w) && w >= 0 && w < weeksCount && weeks[w].started) selWeek = w
+  }
+
+  // Rango de consulta según la vista (día / semana / mes; null = histórico).
+  let range: { start: string; end: string } | null = null
+  if (esMes && mes) {
+    if (vista === 'dia') range = dayRangeISO(mes, selDay)
+    else if (vista === 'semana') range = weekRangeISO(mes, weeks[selWeek].startDay, weeks[selWeek].endDay)
+    else range = monthRange(mes)
+  }
+
+  // El KPI numérico (iniciados) se prorratea a la vista; las tasas (%) no.
+  const divisor = vista === 'dia' ? dim : vista === 'semana' ? dim / 7 : 1
+
+  // Etiquetas del período.
+  const isToday = esMesActual && selDay === curD
+  const isThisWeek = esMesActual && selWeek === Math.floor((curD - 1) / 7)
+  const diaTexto = mes ? diaLabel(mes, selDay) : ''
+  const semanaTexto = mes ? `${weeks[selWeek].startDay}–${weeks[selWeek].endDay} ${mesCorto(mes)}` : ''
+  const periodoCorto = vista === 'dia' ? (isToday ? 'hoy' : diaTexto) : vista === 'semana' ? (isThisWeek ? 'esta semana' : `sem. ${semanaTexto}`) : ''
 
   // Metas (KPI) del mes; en "Todos" se usan los valores por defecto.
   const kpiMap: Record<string, number> = { ...DEFAULT_KPIS }
@@ -100,6 +154,8 @@ export default async function MetricasPage({
       if (KPI_ETAPAS.includes(r.etapa)) kpiMap[r.etapa] = Number(r.valor)
     }
   }
+  // Objetivo del KPI adaptado a la vista (número prorrateado; las tasas quedan en %).
+  const kpiTarget = (etapa: string) => (kpiEsNumero(etapa) ? kpiMap[etapa] / divisor : kpiMap[etapa])
 
   // Conteos del funnel (por fecha en el mes; por etapa alcanzada en "Todos").
   const funnelCounts = await Promise.all(
@@ -180,7 +236,13 @@ export default async function MetricasPage({
   const monthOptions = Array.from(new Set([...monthsPresent, currentMonthKey])).sort().reverse()
 
   const iniciadosBase = funnelCounts[0]
-  const vistaLabel = esTodos ? 'histórico completo' : `${monthLabel(mes!)}${vista !== 'mes' ? ` · por ${vista === 'dia' ? 'día' : 'semana'}` : ''}`
+  const vistaLabel = esTodos
+    ? 'histórico completo'
+    : vista === 'dia'
+    ? `${diaTexto}${isToday ? ' (hoy)' : ''}`
+    : vista === 'semana'
+    ? `Semana ${selWeek + 1} · ${semanaTexto}${isThisWeek ? ' (esta semana)' : ''}`
+    : monthLabel(mes!)
 
   // ── Texto del reporte (Copiar) — totales del período ──
   const reporteTexto = `=== MÉTRICAS — IG LEADS ===
@@ -246,7 +308,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
 
       {/* Sub-vista día / semana (solo con un mes seleccionado) */}
       {esMes && mes && (
-        <div className="flex gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
           {VISTAS.map((v) => {
             const active = vista === v.key
             return (
@@ -263,6 +325,20 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
               </Link>
             )
           })}
+          {(vista === 'dia' || vista === 'semana') && (
+            <PeriodoPicker
+              mes={mes}
+              vista={vista}
+              maxDay={maxDay}
+              daysInMonth={dim}
+              selectedDay={selDay}
+              todayDay={todayDay}
+              selectedWeek={selWeek}
+              weeks={weeks}
+              diaTexto={diaTexto}
+              semanaTexto={semanaTexto}
+            />
+          )}
         </div>
       )}
 
@@ -275,8 +351,8 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
         ].map((c) => (
           <Card key={c.label}>
             <CardContent className="p-4">
-              <p className="text-xs text-muted mb-1.5">{c.label} <span className="opacity-70">{unidad}</span></p>
-              <p className={`text-3xl font-bold ${c.color}`}>{fmtNum(prorate(c.value))}</p>
+              <p className="text-xs text-muted mb-1.5">{c.label}{periodoCorto && <span className="text-foreground/80 font-medium"> {periodoCorto}</span>}</p>
+              <p className={`text-3xl font-bold ${c.color}`}>{c.value.toLocaleString('es-AR')}</p>
               <p className="text-xs text-muted mt-1.5">{c.hint}</p>
             </CardContent>
           </Card>
@@ -286,16 +362,16 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
       {/* Embudo de etapas — cuadro con KPIs */}
       <Card className="mb-4 overflow-x-auto">
         <CardHeader className="pb-2">
-          <CardTitle>Embudo de etapas</CardTitle>
+          <CardTitle>Embudo de etapas {periodoCorto && <span className="font-normal text-muted">· {periodoCorto}</span>}</CardTitle>
           <CardDescription>
-            Total {unidad || 'del período'} · % s/ A (Iniciados) — la tasa no cambia por día/semana; solo se prorratean los totales y la meta de A
+            Total real del período · % s/ A (Iniciados). Las tasas (%) no cambian por día/semana; la meta de A se adapta ({vista === 'dia' ? 'por día' : vista === 'semana' ? 'por semana' : 'mensual'}).
           </CardDescription>
         </CardHeader>
         <Table className="min-w-[520px]">
           <TableHeader>
             <TableRow>
               <TableHead>Métrica</TableHead>
-              <TableHead className="text-center">Total{unidad}</TableHead>
+              <TableHead className="text-center">Total</TableHead>
               <TableHead className="text-center">% s/ A</TableHead>
               <TableHead className="text-center">Meta</TableHead>
             </TableRow>
@@ -305,8 +381,8 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
               const n = funnelCounts[i]
               const p = iniciadosBase > 0 ? (n / iniciadosBase) * 100 : 0
               const esNum = kpiEsNumero(s.etapa)
-              const kpi = kpiMap[s.etapa]
-              const meets = esNum ? n >= kpi : p >= kpi
+              const target = kpiTarget(s.etapa)
+              const meets = esNum ? n >= target : p >= target
               return (
                 <TableRow key={s.code}>
                   <TableCell>
@@ -316,14 +392,14 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
                     </div>
                     <span className="text-xs text-muted">{s.sub}</span>
                   </TableCell>
-                  <TableCell className="text-center font-bold text-navy dark:text-cream tnum">{fmtNum(prorate(n))}</TableCell>
+                  <TableCell className="text-center font-bold text-navy dark:text-cream tnum">{n.toLocaleString('es-AR')}</TableCell>
                   <TableCell className="text-center">
                     <span className={`font-bold tnum ${esNum ? 'text-foreground' : meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                       {i === 0 ? '100%' : fmtPct(p)}
                     </span>
                   </TableCell>
                   <TableCell className={`text-center font-semibold tnum ${meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                    {esNum ? `≥${fmtNum(prorate(kpi))}` : `≥${kpi}%`}
+                    {esNum ? `≥${fmtNum(target)}` : `≥${target}%`}
                   </TableCell>
                 </TableRow>
               )
