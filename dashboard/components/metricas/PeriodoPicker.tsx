@@ -5,10 +5,8 @@ import { useRouter } from 'next/navigation'
 import { FiChevronDown } from 'react-icons/fi'
 
 export interface Semana {
-  index: number
-  startDay: number
-  endDay: number
-  label: string
+  key: string // lunes de la semana (YYYY-MM-DD), id para la URL
+  label: string // "30 jun – 6 jul"
   started: boolean
 }
 
@@ -19,7 +17,7 @@ interface Props {
   daysInMonth: number
   selectedDay: number
   todayDay: number | null // día de hoy si el mes es el actual
-  selectedWeek: number
+  selectedWeekKey: string
   weeks: Semana[]
   diaTexto: string
   semanaTexto: string
@@ -29,7 +27,7 @@ const DOW = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export function PeriodoPicker({
-  mes, vista, maxDay, daysInMonth, selectedDay, todayDay, selectedWeek, weeks, diaTexto, semanaTexto,
+  mes, vista, maxDay, daysInMonth, selectedDay, todayDay, selectedWeekKey, weeks, diaTexto, semanaTexto,
 }: Props) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
@@ -38,9 +36,9 @@ export function PeriodoPicker({
     setOpen(false)
     router.push(`/metricas?mes=${mes}&vista=dia&dia=${mes}-${pad(day)}`)
   }
-  const irSemana = (i: number) => {
+  const irSemana = (key: string) => {
     setOpen(false)
-    router.push(`/metricas?mes=${mes}&vista=semana&sem=${i}`)
+    router.push(`/metricas?mes=${mes}&vista=semana&sem=${key}`)
   }
 
   // Grilla del mes (lunes primero).
@@ -99,15 +97,15 @@ export function PeriodoPicker({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-1 min-w-[12rem]">
-                {weeks.map((w) => {
+              <div className="flex flex-col gap-1 min-w-[13rem]">
+                {weeks.map((w, i) => {
                   const disabled = !w.started
-                  const sel = w.index === selectedWeek
+                  const sel = w.key === selectedWeekKey
                   return (
                     <button
-                      key={w.index}
+                      key={w.key}
                       disabled={disabled}
-                      onClick={() => irSemana(w.index)}
+                      onClick={() => irSemana(w.key)}
                       className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                         sel
                           ? 'bg-foreground text-background font-semibold'
@@ -116,7 +114,7 @@ export function PeriodoPicker({
                           : 'text-foreground hover:bg-foreground/10'
                       }`}
                     >
-                      Semana {w.index + 1} <span className={sel ? 'opacity-80' : 'text-muted'}>· {w.label}</span>
+                      Semana {i + 1} <span className={sel ? 'opacity-80' : 'text-muted'}>· {w.label}</span>
                     </button>
                   )
                 })}

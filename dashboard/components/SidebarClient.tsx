@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiInstagram } from 'react-icons/si'
-import { FiColumns, FiClock, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
+import { FiHome, FiColumns, FiClock, FiTrendingUp, FiSliders, FiLogOut, FiSun, FiMoon, FiChevronLeft, FiChevronsRight } from 'react-icons/fi'
 import { logout } from '@/lib/auth'
 import { useTheme } from 'next-themes'
 
@@ -13,10 +13,11 @@ interface Props {
 }
 
 const TABS = [
+  { href: '/',          label: 'Inicio',     icon: FiHome,        countKey: null                  },
   { href: '/pipeline',  label: 'Pipeline',   icon: FiColumns,     countKey: 'pendientes' as const },
-  { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
   { href: '/metricas',  label: 'Métricas',   icon: FiTrendingUp,  countKey: null                  },
   { href: '/scraper',   label: 'Scraper',    icon: FiSliders,     countKey: null                  },
+  { href: '/historial', label: 'Historial',  icon: FiClock,       countKey: null                  },
 ]
 
 export function SidebarClient({ pendientes }: Props) {
@@ -42,6 +43,42 @@ export function SidebarClient({ pendientes }: Props) {
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
+
+  // Escritorio: un ítem de navegación (Inicio se separa del resto con una línea).
+  const desktopTab = (tab: (typeof TABS)[number]) => {
+    const Icon = tab.icon
+    const active = isActive(tab.href)
+    const count = tab.countKey ? counts[tab.countKey] : null
+    return (
+      <Link
+        key={tab.href}
+        href={tab.href}
+        title={!expanded ? tab.label : undefined}
+        aria-current={active ? 'page' : undefined}
+        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+          active
+            ? 'bg-foreground/[0.07] text-foreground font-semibold'
+            : 'text-muted font-medium hover:text-foreground hover:bg-foreground/5'
+        }`}
+      >
+        {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-foreground" />}
+        <Icon size={18} className="shrink-0" />
+        {expanded && <span className="flex-1 truncate">{tab.label}</span>}
+        {expanded && count !== null && (
+          <span className={`text-xs font-semibold tnum px-1.5 py-0.5 rounded-md ${active ? 'bg-foreground text-background' : 'bg-foreground/8 text-muted'}`}>
+            {count}
+          </span>
+        )}
+        {!expanded && count !== null && count > 0 && (
+          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-foreground rounded-full" />
+        )}
+      </Link>
+    )
+  }
+
+  // Móvil: Inicio va al centro y destacado como botón circular saliente.
+  const byHref = Object.fromEntries(TABS.map((t) => [t.href, t]))
+  const mobileTabs = ['/pipeline', '/metricas', '/', '/scraper', '/historial'].map((h) => byHref[h])
 
   return (
     <>
@@ -84,42 +121,11 @@ export function SidebarClient({ pendientes }: Props) {
           )}
         </div>
 
-        {/* Navegación */}
+        {/* Navegación (Inicio separado del resto con una línea) */}
         <nav className="flex-1 p-2.5 flex flex-col gap-1 overflow-y-auto">
-          {TABS.map((tab) => {
-            const Icon = tab.icon
-            const active = isActive(tab.href)
-            const count = tab.countKey ? counts[tab.countKey] : null
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                title={!expanded ? tab.label : undefined}
-                aria-current={active ? 'page' : undefined}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                  active
-                    ? 'bg-foreground/[0.07] text-foreground font-semibold'
-                    : 'text-muted font-medium hover:text-foreground hover:bg-foreground/5'
-                }`}
-              >
-                {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-foreground" />
-                )}
-                <Icon size={18} className="shrink-0" />
-                {expanded && <span className="flex-1 truncate">{tab.label}</span>}
-                {expanded && count !== null && (
-                  <span className={`text-xs font-semibold tnum px-1.5 py-0.5 rounded-md ${
-                    active ? 'bg-foreground text-background' : 'bg-foreground/8 text-muted'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-                {!expanded && count !== null && count > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-foreground rounded-full" />
-                )}
-              </Link>
-            )
-          })}
+          {desktopTab(TABS[0])}
+          <div className="mx-1 my-1 border-t border-border/60" aria-hidden />
+          {TABS.slice(1).map((t) => desktopTab(t))}
         </nav>
 
         {/* Acciones inferiores */}
@@ -174,32 +180,52 @@ export function SidebarClient({ pendientes }: Props) {
       </header>
 
       {/* ───────────── Isla de pestañas inferior · móvil (<lg) ───────────── */}
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-4">
-        {TABS.map((tab) => {
+      {/* Inicio va al centro, destacado como botón circular que sobresale. */}
+      <nav className="lg:hidden fixed bottom-3 inset-x-3 z-40 h-[4.25rem] px-1.5 rounded-2xl glass-island grid grid-cols-5">
+        {mobileTabs.map((tab) => {
           const Icon = tab.icon
           const active = isActive(tab.href)
           const count = tab.countKey ? counts[tab.countKey] : null
+
+          if (tab.href === '/') {
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? 'page' : undefined}
+                aria-label={tab.label}
+                className="relative flex items-center justify-center min-w-0"
+              >
+                <span
+                  className={`grid place-items-center h-11 w-11 rounded-full bg-foreground text-background shadow-md shadow-foreground/25 transition-transform ${
+                    active ? 'scale-105' : ''
+                  }`}
+                >
+                  <Icon size={21} />
+                </span>
+              </Link>
+            )
+          }
+
           return (
             <Link
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
-              className={`relative flex flex-col items-center justify-center gap-1 rounded-xl my-1.5 min-w-0 transition-colors ${
+              aria-label={tab.label}
+              className={`relative flex items-center justify-center rounded-xl my-1.5 min-w-0 transition-colors ${
                 active ? 'text-foreground' : 'text-muted'
               }`}
             >
-              <span className={`relative grid place-items-center h-8 w-8 rounded-xl transition-colors ${
+              <span className={`relative grid place-items-center h-10 w-10 rounded-xl transition-colors ${
                 active ? 'bg-foreground/[0.08]' : ''
               }`}>
-                <Icon size={19} />
+                <Icon size={21} />
                 {count !== null && count > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 grid place-items-center text-[0.6rem] font-bold tnum rounded-full bg-foreground text-background">
                     {count > 99 ? '99' : count}
                   </span>
                 )}
-              </span>
-              <span className={`text-[0.62rem] leading-none tracking-tight max-w-full truncate px-0.5 ${active ? 'font-semibold' : 'font-medium'}`}>
-                {tab.label}
               </span>
             </Link>
           )
