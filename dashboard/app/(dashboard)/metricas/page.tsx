@@ -6,7 +6,6 @@ import { CopyReport } from '@/components/CopyReport'
 import { KpiConfig } from '@/components/metricas/KpiConfig'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -299,7 +298,6 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
               <TableHead className="text-center">Total{unidad}</TableHead>
               <TableHead className="text-center">% s/ A</TableHead>
               <TableHead className="text-center">Meta</TableHead>
-              <TableHead className="text-center">Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -324,9 +322,8 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
                       {i === 0 ? '100%' : fmtPct(p)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center text-muted tnum">{esNum ? `≥${fmtNum(prorate(kpi))}` : `≥${kpi}%`}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={meets ? 'success' : 'destructive'}>{meets ? '✓ Cumple' : '✗ No cumple'}</Badge>
+                  <TableCell className={`text-center font-semibold tnum ${meets ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {esNum ? `≥${fmtNum(prorate(kpi))}` : `≥${kpi}%`}
                   </TableCell>
                 </TableRow>
               )
