@@ -37,6 +37,18 @@ export const FASE_MAX: Record<Fase, number> = { iniciado: 1, interesado: 7, cale
 
 export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).includes(v)
 
+// ── Resultado del contacto (ortogonal a la etapa) ─────────────────────────────
+// null = activo. Marca leads que dijeron que no o que bloquearon: siguen
+// calificados e iniciados, solo se registra el desenlace.
+export const RESULTADOS = ['no_interesado', 'bloqueado', 'no_recibe_mensajes'] as const
+export type Resultado = (typeof RESULTADOS)[number]
+export const RESULTADO_LABEL: Record<Resultado, string> = {
+  no_interesado: 'No interesado',
+  bloqueado: 'Bloqueado',
+  no_recibe_mensajes: 'No recibe mensajes',
+}
+export const isResultado = (v: string): v is Resultado => (RESULTADOS as readonly string[]).includes(v)
+
 // ── Metas (KPI) del embudo ────────────────────────────────────────────────────
 // 'iniciado' es un número total; el resto es un % sobre los iniciados del mes.
 export type KpiTipo = 'num' | 'pct'

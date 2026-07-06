@@ -27,6 +27,8 @@ export interface Lead {
   activo_redes: boolean | null
   notas: string | null
   etapa: string
+  resultado: 'no_interesado' | 'bloqueado' | 'no_recibe_mensajes' | null
+  resultado_at: string | null
   visto_at: string | null
   interesado_at: string | null
   calendly_at: string | null

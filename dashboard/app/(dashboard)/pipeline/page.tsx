@@ -2,13 +2,19 @@ export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead, Owner } from '@/lib/supabase'
 import { getHiddenLocations } from '@/lib/hidden'
-import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, type Etapa } from '@/lib/pipeline-stages'
+import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, RESULTADOS, RESULTADO_LABEL, type Etapa, type Resultado } from '@/lib/pipeline-stages'
 import { PipelineCard } from '@/components/pipeline/PipelineCard'
 import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
 import { CalificarButtons } from '@/components/LeadActions'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle } from 'react-icons/fi'
+import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck } from 'react-icons/fi'
+
+const RES_ICON: Record<Resultado, typeof FiSlash> = {
+  no_interesado: FiThumbsDown,
+  bloqueado: FiXOctagon,
+  no_recibe_mensajes: FiSlash,
+}
 
 // El seguimiento se hace 1 semana después del contacto si no hubo respuesta.
 const SEG_DIAS = 7
@@ -33,6 +39,8 @@ async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
   else {
     q = q.eq('etapa', key)
     if (key === 'lead') q = q.eq('calificado', true)
+    // Iniciado/Visto muestran los activos por defecto: el contador acompaña.
+    if (key === 'iniciado' || key === 'visto') q = q.is('resultado', null)
   }
   const { count } = await q
   return count || 0
@@ -41,15 +49,19 @@ async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
 export default async function PipelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string }>
+  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string; res?: string }>
 }) {
   const params = await searchParams
   const tab: TabKey = params.etapa && isTab(params.etapa) ? params.etapa : 'sin_calificar'
   const q = (params.q || '').trim()
   // Filtro con/sin web en la etapa Lead (por defecto: sin web).
   const web: 'con' | 'sin' = params.web === 'con' ? 'con' : 'sin'
-  // Filtro con/sin seguimiento en Iniciado/Visto (por defecto: sin seguimiento).
+  // Filtro por resultado del contacto en Iniciado/Visto (por defecto: activos).
   const segTabs = tab === 'iniciado' || tab === 'visto'
+  const res: 'activos' | Resultado =
+    params.res === 'no_interesado' || params.res === 'bloqueado' ? params.res : 'activos'
+  const verActivos = res === 'activos'
+  // Filtro con/sin seguimiento (solo aplica a los activos).
   const seg: 'con' | 'sin' = params.seg === 'con' ? 'con' : 'sin'
   const supabase = getSupabase()
 
@@ -58,7 +70,7 @@ export default async function PipelinePage({
 
   // Leads que ya tienen seguimiento de la fase 'iniciado' (compartida por Iniciado/Visto).
   let segIds: number[] = []
-  if (segTabs) {
+  if (segTabs && verActivos) {
     const { data } = await supabase.from('lead_followups').select('lead_id').eq('fase', 'iniciado')
     segIds = Array.from(new Set((data || []).map((r) => (r as { lead_id: number }).lead_id)))
   }
@@ -77,8 +89,14 @@ export default async function PipelinePage({
   } else query = query.eq('etapa', tab)
   for (const loc of hidden) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
-  // Filtro por seguimiento (Iniciado/Visto).
+  // Resultado del contacto (Iniciado/Visto): activos vs. no interesado / bloqueado.
   if (segTabs) {
+    if (verActivos) query = query.is('resultado', null)
+    else query = query.eq('resultado', res)
+  }
+
+  // Filtro por seguimiento (solo entre los activos).
+  if (segTabs && verActivos) {
     if (seg === 'con') query = query.in('id', segIds.length ? segIds : [-1])
     else if (segIds.length) query = query.not('id', 'in', `(${segIds.join(',')})`)
   }
@@ -90,7 +108,10 @@ export default async function PipelinePage({
   }
 
   const dateCol = tab !== 'sin_calificar' ? ETAPA_FECHA[tab] : null
-  if (segTabs && seg === 'sin') {
+  if (segTabs && !verActivos) {
+    // No interesados / bloqueados: los más recientes primero.
+    query = query.order('resultado_at', { ascending: false, nullsFirst: false })
+  } else if (segTabs && seg === 'sin') {
     // Sin seguimiento: el contacto más viejo primero (seguimiento más urgente).
     query = query.order('contacted_at', { ascending: true, nullsFirst: false })
   } else if (dateCol) {
@@ -185,8 +206,34 @@ export default async function PipelinePage({
         </div>
       )}
 
-      {/* Filtro con/sin seguimiento (etapas Iniciado y Visto) */}
+      {/* Filtro por resultado del contacto (etapas Iniciado y Visto) */}
       {segTabs && (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(['activos', ...RESULTADOS] as const).map((r) => {
+            const active = res === r
+            const qs = new URLSearchParams({ etapa: tab, res: r })
+            if (q) qs.set('q', q)
+            const Icon = r === 'activos' ? FiUserCheck : RES_ICON[r]
+            return (
+              <Link
+                key={r}
+                href={`/pipeline?${qs.toString()}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-foreground text-background shadow-sm'
+                    : 'bg-card/60 backdrop-blur-sm text-muted border border-border hover:bg-foreground/5 hover:text-foreground'
+                }`}
+              >
+                <Icon size={13} />
+                {r === 'activos' ? 'Activos' : RESULTADO_LABEL[r]}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Filtro con/sin seguimiento (solo entre los activos) */}
+      {segTabs && verActivos && (
         <div className="flex gap-2 mb-4">
           {(['sin', 'con'] as const).map((s) => {
             const active = seg === s
@@ -274,7 +321,7 @@ export default async function PipelinePage({
                     ownerNumero={numero}
                     ownerCount={owners.length}
                     followupCount={fupByLead.get(lead.id) || 0}
-                    seg={segTabs ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined}
+                    seg={segTabs && verActivos ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined}
                   />
                 )
               })()

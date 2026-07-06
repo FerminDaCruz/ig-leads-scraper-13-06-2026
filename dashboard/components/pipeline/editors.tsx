@@ -4,17 +4,24 @@ import { useState, useTransition } from 'react'
 import { Lead, Owner, Followup } from '@/lib/supabase'
 import {
   ETAPAS, ETAPA_LABEL, ETAPA_FECHA, FASES, FASE_LABEL, FASE_MAX,
-  type Etapa, type Fase,
+  RESULTADOS, RESULTADO_LABEL,
+  type Etapa, type Fase, type Resultado,
 } from '@/lib/pipeline-stages'
 import {
-  cambiarEtapa, actualizarFecha, actualizarCampos,
+  cambiarEtapa, actualizarFecha, actualizarCampos, marcarResultado,
   agregarOwner, actualizarOwner, eliminarOwner,
   agregarFollowup, actualizarFollowup, eliminarFollowup,
 } from '@/lib/pipeline'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiChevronDown, FiPlus, FiTrash2 } from 'react-icons/fi'
+import { FiChevronDown, FiPlus, FiTrash2, FiSlash, FiXOctagon, FiThumbsDown } from 'react-icons/fi'
+
+const RES_ICON: Record<Resultado, typeof FiSlash> = {
+  no_interesado: FiThumbsDown,
+  bloqueado: FiXOctagon,
+  no_recibe_mensajes: FiSlash,
+}
 
 const inputCls =
   'w-full px-3 py-2 text-sm rounded-xl border bg-white dark:bg-navy-card text-navy dark:text-cream border-surface dark:border-navy-border focus:outline-none focus:ring-2 focus:ring-brand placeholder:text-muted'
@@ -76,6 +83,44 @@ export function EtapaControl({ lead }: { lead: Lead }) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      {/* Resultado del contacto (ortogonal a la etapa) */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted">Resultado</span>
+        <div className="inline-flex rounded-xl border border-border overflow-hidden">
+          {RESULTADOS.map((r) => {
+            const active = lead.resultado === r
+            const Icon = RES_ICON[r]
+            return (
+              <button
+                key={r}
+                type="button"
+                disabled={isPending}
+                onClick={() => startTransition(() => marcarResultado(lead.id, r))}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed ${
+                  active
+                    ? r === 'bloqueado'
+                      ? 'bg-red-500 text-white font-semibold'
+                      : 'bg-foreground text-background font-semibold'
+                    : 'text-muted enabled:hover:bg-foreground/5'
+                }`}
+              >
+                <Icon size={13} /> {RESULTADO_LABEL[r]}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => startTransition(() => marcarResultado(lead.id, null))}
+            className={`px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed ${
+              lead.resultado === null ? 'bg-foreground text-background font-semibold' : 'text-muted enabled:hover:bg-foreground/5'
+            }`}
+          >
+            Activo
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">

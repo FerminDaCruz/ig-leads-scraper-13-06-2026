@@ -48,7 +48,7 @@ export default async function Home() {
     count(sel().eq('etapa', 'lead').eq('calificado', true)),
     count(sel().eq('etapa', 'cerrado')),
     supabase.from('lead_followups').select('lead_id').eq('fase', 'iniciado'),
-    supabase.from('leads').select('id').in('etapa', ['iniciado', 'visto']).lte('contacted_at', sevenAgo),
+    supabase.from('leads').select('id').in('etapa', ['iniciado', 'visto']).is('resultado', null).lte('contacted_at', sevenAgo),
   ])
 
   // Seguimientos vencidos: en iniciado/visto, contactados hace ≥1 semana y sin seguimiento.

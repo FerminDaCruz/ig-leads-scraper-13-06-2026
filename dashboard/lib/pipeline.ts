@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getSupabase } from './supabase'
-import { ETAPAS, ETAPA_FECHA, FECHA_COLS, FASE_MAX, isEtapa, type Fase } from './pipeline-stages'
+import { ETAPAS, ETAPA_FECHA, FECHA_COLS, FASE_MAX, isEtapa, isResultado, type Etapa, type Fase } from './pipeline-stages'
 
 function revalidar(id?: number) {
   revalidatePath('/pipeline')
@@ -24,6 +24,30 @@ export async function cambiarEtapa(id: number, etapa: string) {
   // De 'iniciado' en adelante el lead está contactado (sincroniza el booleano
   // que usan Reportes/Métricas/Historial).
   if (ETAPAS.indexOf(etapa) >= ETAPAS.indexOf('iniciado')) update.contactado = true
+  await supabase.from('leads').update(update).eq('id', id)
+  revalidar(id)
+}
+
+// Marca (o limpia) el resultado del contacto. Un lead con resultado queda
+// calificado e iniciado como mínimo: dijo que no / bloqueó tras el contacto.
+export async function marcarResultado(id: number, resultado: string | null) {
+  if (resultado !== null && !isResultado(resultado)) return
+  const supabase = getSupabase()
+  const update: Record<string, unknown> = {
+    resultado,
+    resultado_at: resultado ? new Date().toISOString() : null,
+  }
+  if (resultado) {
+    update.calificado = true
+    const { data } = await supabase.from('leads').select('etapa, contacted_at').eq('id', id).single()
+    const row = data as { etapa: string; contacted_at: string | null } | null
+    // Si todavía no llegó a 'iniciado', lo promueve (implica que hubo contacto).
+    if (row && ETAPAS.indexOf(row.etapa as Etapa) < ETAPAS.indexOf('iniciado')) {
+      update.etapa = 'iniciado'
+      update.contactado = true
+      if (!row.contacted_at) update.contacted_at = new Date().toISOString()
+    }
+  }
   await supabase.from('leads').update(update).eq('id', id)
   revalidar(id)
 }
