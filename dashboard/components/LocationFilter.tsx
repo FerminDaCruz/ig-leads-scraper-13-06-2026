@@ -1,16 +1,17 @@
 'use client'
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { FiMapPin, FiEyeOff, FiX } from 'react-icons/fi'
 import { LOCATIONS } from '@/lib/constants'
+import { useNavPending } from '@/components/NavPending'
 
 const selectClass =
   'py-2 text-sm rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream appearance-none focus:outline-none focus:ring-2 focus:ring-brand border-surface dark:border-navy-border'
 
 export function LocationFilter() {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { navigate } = useNavPending()
 
   const ubicacion = searchParams.get('ubicacion') || ''
   const ocultar = searchParams.getAll('ocultar')
@@ -24,13 +25,13 @@ export function LocationFilter() {
     return params.toString()
   }
 
-  const setUbicacion = (v: string) => router.push(`${pathname}?${buildParams({ ubicacion: v })}`)
+  const setUbicacion = (v: string) => navigate(`${pathname}?${buildParams({ ubicacion: v })}`)
   const addOcultar = (v: string) => {
     if (!v || ocultar.includes(v)) return
-    router.push(`${pathname}?${buildParams({ ocultar: [...ocultar, v] })}`)
+    navigate(`${pathname}?${buildParams({ ocultar: [...ocultar, v] })}`)
   }
   const removeOcultar = (v: string) =>
-    router.push(`${pathname}?${buildParams({ ocultar: ocultar.filter((x) => x !== v) })}`)
+    navigate(`${pathname}?${buildParams({ ocultar: ocultar.filter((x) => x !== v) })}`)
 
   const availableToHide = LOCATIONS.filter((l) => !ocultar.includes(l))
 

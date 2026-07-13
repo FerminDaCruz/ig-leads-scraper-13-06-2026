@@ -5,9 +5,9 @@ import { ETAPAS, DEFAULT_KPIS, KPI_ETAPAS, kpiEsNumero } from '@/lib/pipeline-st
 import { CopyReport } from '@/components/CopyReport'
 import { KpiConfig } from '@/components/metricas/KpiConfig'
 import { PeriodoPicker, type Semana } from '@/components/metricas/PeriodoPicker'
+import { FilterLink, PendingDim } from '@/components/NavPending'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import Link from 'next/link'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Porcentaje sin redondear a entero: hasta 1 decimal (ej. 13,5% · 20,8%).
@@ -325,7 +325,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
         {[{ key: 'todos', label: 'Todos' }, ...monthOptions.map((m) => ({ key: m, label: monthLabel(m) }))].map((o) => {
           const active = o.key === (esTodos ? 'todos' : mes)
           return (
-            <Link
+            <FilterLink
               key={o.key}
               href={`/metricas?mes=${o.key}`}
               className={`shrink-0 px-3.5 py-1.5 rounded-xl text-sm font-medium capitalize transition-colors ${
@@ -335,7 +335,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
               }`}
             >
               {o.label}
-            </Link>
+            </FilterLink>
           )
         })}
       </div>
@@ -346,7 +346,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
           {VISTAS.map((v) => {
             const active = vista === v.key
             return (
-              <Link
+              <FilterLink
                 key={v.key}
                 href={`/metricas?mes=${mes}&vista=${v.key}`}
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -356,7 +356,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
                 }`}
               >
                 {v.label}
-              </Link>
+              </FilterLink>
             )
           })}
           {(vista === 'dia' || vista === 'semana') && (
@@ -376,6 +376,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
         </div>
       )}
 
+      <PendingDim>
       {/* Actividad del período (Scraper → yo) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
@@ -588,6 +589,7 @@ ${reasonEntries.map((r) => `- ${r.label}: ${r.count} (${r.pct}%)`).join('\n') ||
           </CardContent>
         </Card>
       )}
+      </PendingDim>
     </main>
   )
 }

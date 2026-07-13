@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { FiChevronDown } from 'react-icons/fi'
+import { FiChevronDown, FiLoader } from 'react-icons/fi'
+import { useNavPending } from '@/components/NavPending'
 
 export interface Semana {
   key: string // lunes de la semana (YYYY-MM-DD), id para la URL
@@ -30,15 +30,15 @@ export function PeriodoPicker({
   mes, vista, maxDay, daysInMonth, selectedDay, todayDay, selectedWeekKey, weeks, diaTexto, semanaTexto,
 }: Props) {
   const [open, setOpen] = useState(false)
-  const router = useRouter()
+  const { pending, navigate } = useNavPending()
 
   const irDia = (day: number) => {
     setOpen(false)
-    router.push(`/metricas?mes=${mes}&vista=dia&dia=${mes}-${pad(day)}`)
+    navigate(`/metricas?mes=${mes}&vista=dia&dia=${mes}-${pad(day)}`)
   }
   const irSemana = (key: string) => {
     setOpen(false)
-    router.push(`/metricas?mes=${mes}&vista=semana&sem=${key}`)
+    navigate(`/metricas?mes=${mes}&vista=semana&sem=${key}`)
   }
 
   // Grilla del mes (lunes primero).
@@ -57,7 +57,11 @@ export function PeriodoPicker({
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-foreground border border-border hover:bg-foreground/5 transition-colors capitalize"
       >
         {vista === 'dia' ? diaTexto : semanaTexto}
-        <FiChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        {pending ? (
+          <FiLoader size={14} className="animate-spin text-muted" />
+        ) : (
+          <FiChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        )}
       </button>
 
       {open && (

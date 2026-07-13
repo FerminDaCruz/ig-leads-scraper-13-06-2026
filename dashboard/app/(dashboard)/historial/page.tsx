@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead } from '@/lib/supabase'
 import { LocationFilter } from '@/components/LocationFilter'
+import { FilterLink, PendingDim } from '@/components/NavPending'
 import { Card } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import Link from 'next/link'
 import { Suspense } from 'react'
 
 type Filtro = 'todos' | 'pendientes' | 'calificados' | 'descartados' | 'contactados'
@@ -67,7 +67,7 @@ export default async function HistorialPage({
           if (ubicacion) params.set('ubicacion', ubicacion)
           ocultar.forEach((v) => params.append('ocultar', v))
           return (
-            <Link
+            <FilterLink
               key={f.id}
               href={`/historial?${params.toString()}`}
               className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -77,11 +77,12 @@ export default async function HistorialPage({
               }`}
             >
               {f.label}
-            </Link>
+            </FilterLink>
           )
         })}
       </div>
 
+      <PendingDim>
       <Card className="overflow-x-auto">
         <Table className="min-w-[480px]">
           <TableHeader>
@@ -135,6 +136,7 @@ export default async function HistorialPage({
           </TableBody>
         </Table>
       </Card>
+      </PendingDim>
     </main>
   )
 }

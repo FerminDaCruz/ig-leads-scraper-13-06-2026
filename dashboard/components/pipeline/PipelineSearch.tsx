@@ -1,13 +1,14 @@
 'use client'
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { FiSearch, FiX } from 'react-icons/fi'
+import { FiSearch, FiX, FiLoader } from 'react-icons/fi'
+import { useNavPending } from '@/components/NavPending'
 
 export function PipelineSearch() {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { pending, navigate } = useNavPending()
   const [value, setValue] = useState(searchParams.get('q') || '')
   const first = useRef(true)
 
@@ -22,7 +23,7 @@ export function PipelineSearch() {
       const params = new URLSearchParams(Array.from(searchParams.entries()))
       if (value.trim()) params.set('q', value.trim())
       else params.delete('q')
-      router.push(`${pathname}?${params.toString()}`)
+      navigate(`${pathname}?${params.toString()}`)
     }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,14 +38,18 @@ export function PipelineSearch() {
         placeholder="Buscar por empresa o @usuario..."
         className="w-full pl-9 pr-9 py-2 text-sm rounded-xl border bg-white dark:bg-navy-card text-navy dark:text-cream border-surface dark:border-navy-border focus:outline-none focus:ring-2 focus:ring-brand placeholder:text-muted"
       />
-      {value && (
-        <button
-          onClick={() => setValue('')}
-          aria-label="Limpiar búsqueda"
-          className="absolute right-2.5 grid place-items-center h-6 w-6 rounded-lg text-muted hover:text-foreground hover:bg-foreground/5 transition-colors"
-        >
-          <FiX size={14} />
-        </button>
+      {pending ? (
+        <FiLoader size={14} className="absolute right-3 text-muted animate-spin" />
+      ) : (
+        value && (
+          <button
+            onClick={() => setValue('')}
+            aria-label="Limpiar búsqueda"
+            className="absolute right-2.5 grid place-items-center h-6 w-6 rounded-lg text-muted hover:text-foreground hover:bg-foreground/5 transition-colors"
+          >
+            <FiX size={14} />
+          </button>
+        )
       )}
     </div>
   )

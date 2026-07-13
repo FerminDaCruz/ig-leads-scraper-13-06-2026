@@ -5,9 +5,9 @@ import { getHiddenLocations } from '@/lib/hidden'
 import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, RESULTADOS, RESULTADO_LABEL, type Etapa, type Resultado } from '@/lib/pipeline-stages'
 import { PipelineCard } from '@/components/pipeline/PipelineCard'
 import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
+import { FilterLink, PendingDim } from '@/components/NavPending'
 import { CalificarButtons } from '@/components/LeadActions'
 import { Badge } from '@/components/ui/badge'
-import Link from 'next/link'
 import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
@@ -163,7 +163,7 @@ export default async function PipelinePage({
           const qs = new URLSearchParams({ etapa: t.key })
           if (q) qs.set('q', q)
           return (
-            <Link
+            <FilterLink
               key={t.key}
               href={`/pipeline?${qs.toString()}`}
               className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -176,7 +176,7 @@ export default async function PipelinePage({
               <span className={`text-xs tnum font-semibold ${active ? 'text-background/70' : 'text-muted'}`}>
                 {countByTab[t.key]}
               </span>
-            </Link>
+            </FilterLink>
           )
         })}
       </div>
@@ -189,7 +189,7 @@ export default async function PipelinePage({
             const qs = new URLSearchParams({ etapa: 'lead', web: w })
             if (q) qs.set('q', q)
             return (
-              <Link
+              <FilterLink
                 key={w}
                 href={`/pipeline?${qs.toString()}`}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -200,7 +200,7 @@ export default async function PipelinePage({
               >
                 {w === 'sin' ? <FiSlash size={13} /> : <FiGlobe size={13} />}
                 {w === 'sin' ? 'Sin web' : 'Con web'}
-              </Link>
+              </FilterLink>
             )
           })}
         </div>
@@ -215,7 +215,7 @@ export default async function PipelinePage({
             if (q) qs.set('q', q)
             const Icon = r === 'activos' ? FiUserCheck : RES_ICON[r]
             return (
-              <Link
+              <FilterLink
                 key={r}
                 href={`/pipeline?${qs.toString()}`}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -226,7 +226,7 @@ export default async function PipelinePage({
               >
                 <Icon size={13} />
                 {r === 'activos' ? 'Activos' : RESULTADO_LABEL[r]}
-              </Link>
+              </FilterLink>
             )
           })}
         </div>
@@ -240,7 +240,7 @@ export default async function PipelinePage({
             const qs = new URLSearchParams({ etapa: tab, seg: s })
             if (q) qs.set('q', q)
             return (
-              <Link
+              <FilterLink
                 key={s}
                 href={`/pipeline?${qs.toString()}`}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
@@ -251,12 +251,13 @@ export default async function PipelinePage({
               >
                 {s === 'sin' ? <FiClock size={13} /> : <FiCheckCircle size={13} />}
                 {s === 'sin' ? 'Sin seguimiento' : 'Con seguimiento'}
-              </Link>
+              </FilterLink>
             )
           })}
         </div>
       )}
 
+      <PendingDim>
       {q && (
         <p className="text-xs text-muted mb-3 -mt-2">
           {leads.length} resultado{leads.length === 1 ? '' : 's'} para «{q}» en {tabLabel}
@@ -329,6 +330,7 @@ export default async function PipelinePage({
           )}
         </div>
       )}
+      </PendingDim>
     </main>
   )
 }
