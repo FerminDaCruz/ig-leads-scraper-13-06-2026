@@ -92,7 +92,8 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
           : 'border-border bg-card/60 hover:bg-foreground/[0.03]'
       }`}
     >
-      <div className="relative flex items-center gap-2">
+      {/* En mobile la info va arriba y las acciones abajo; en desktop, en una línea. */}
+      <div className="relative flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-2">
       {/* Click en el resto de la card → detalle */}
       <Link
         href={`/pipeline/${lead.id}${volverA ? `?from=${encodeURIComponent(volverA)}` : ''}`}
@@ -166,7 +167,7 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
       </div>
 
       {/* Acciones */}
-      <div className="relative pointer-events-auto shrink-0 flex items-center gap-1.5">
+      <div className="relative pointer-events-auto shrink-0 flex items-center justify-end gap-1.5">
         {next && (
           <button
             onClick={() => startTransition(() => cambiarEtapa(lead.id, next.etapa))}
