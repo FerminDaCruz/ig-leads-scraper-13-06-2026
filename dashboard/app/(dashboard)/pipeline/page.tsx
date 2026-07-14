@@ -8,7 +8,7 @@ import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
 import { FilterLink, PendingDim } from '@/components/NavPending'
 import { CalificarButtons } from '@/components/LeadActions'
 import { Badge } from '@/components/ui/badge'
-import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck } from 'react-icons/fi'
+import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck, FiAlertCircle, FiSend, FiPhoneCall, FiUsers } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
   no_interesado: FiThumbsDown,
@@ -27,22 +27,30 @@ function segEstado(contactedAt: string | null, hecho: boolean): { estado: 'hecho
 }
 
 // 'todos' = sin filtro de etapa; sirve para buscar cualquier lead con la lupa.
-type TabKey = 'sin_calificar' | 'todos' | Etapa
+// 'otro_canal' = los que salieron de Instagram (WhatsApp / llamada).
+type TabKey = 'sin_calificar' | 'todos' | 'otro_canal' | Etapa
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'sin_calificar', label: 'Sin calificar' },
   ...ETAPAS.map((e) => ({ key: e as TabKey, label: ETAPA_LABEL[e] })),
+  { key: 'otro_canal', label: 'Otro canal' },
   { key: 'todos', label: 'Todos' },
 ]
 const isTab = (v: string): v is TabKey => TABS.some((t) => t.key === v)
 
+// Sub-colas de "Otro canal": buscar el número es una tarea distinta de escribir.
+type Sub = 'sin_numero' | 'whatsapp' | 'llamada'
+const isSub = (v: string): v is Sub => v === 'sin_numero' || v === 'whatsapp' || v === 'llamada'
+
 async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
   let q = supabase.from('leads').select('*', { count: 'exact', head: true })
   if (key === 'sin_calificar') q = q.is('calificado', null)
+  else if (key === 'otro_canal') q = q.neq('canal', 'instagram')
   else if (key !== 'todos') {
     q = q.eq('etapa', key)
     if (key === 'lead') q = q.eq('calificado', true)
-    // Iniciado/Visto muestran los activos por defecto: el contador acompaña.
-    if (key === 'iniciado' || key === 'visto') q = q.is('resultado', null)
+    // Iniciado/Visto muestran los activos de Instagram por defecto: el contador acompaña.
+    // Los mudados a WhatsApp/llamada se cuentan en "Otro canal".
+    if (key === 'iniciado' || key === 'visto') q = q.is('resultado', null).eq('canal', 'instagram')
   }
   const { count } = await q
   return count || 0
@@ -51,11 +59,13 @@ async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
 export default async function PipelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string; res?: string }>
+  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string; res?: string; sub?: string }>
 }) {
   const params = await searchParams
   const tab: TabKey = params.etapa && isTab(params.etapa) ? params.etapa : 'sin_calificar'
   const q = (params.q || '').trim()
+  // Sub-cola dentro de "Otro canal" (por defecto: todos los mudados).
+  const sub: Sub | null = params.sub && isSub(params.sub) ? params.sub : null
   // Filtro con/sin web en la etapa Lead (por defecto: sin web).
   const web: 'con' | 'sin' = params.web === 'con' ? 'con' : 'sin'
   // Filtro por resultado del contacto en Iniciado/Visto (por defecto: activos).
@@ -70,13 +80,33 @@ export default async function PipelinePage({
   const counts = await Promise.all(TABS.map((t) => contar(supabase, t.key)))
   const countByTab = Object.fromEntries(TABS.map((t, i) => [t.key, counts[i]])) as Record<TabKey, number>
 
-  // Leads que ya tienen seguimiento de la fase 'iniciado' (compartida por Iniciado/Visto).
+  // Leads que ya tienen seguimiento de la fase 'iniciado' (compartida por Iniciado/Visto)
+  // POR INSTAGRAM: un DM viejo no cuenta como seguimiento hecho por WhatsApp.
   let segIds: number[] = []
   if (segTabs && verActivos) {
-    const { data } = await supabase.from('lead_followups').select('lead_id').eq('fase', 'iniciado')
+    const { data } = await supabase
+      .from('lead_followups')
+      .select('lead_id')
+      .eq('fase', 'iniciado')
+      .eq('canal', 'instagram')
     segIds = Array.from(new Set((data || []).map((r) => (r as { lead_id: number }).lead_id)))
   }
   const segSet = new Set(segIds)
+
+  // Cuántos activos de esta etapa tienen y no tienen seguimiento (para los chips).
+  // countByTab[tab] ya son los activos de Instagram de la etapa: el resto es resta.
+  let segCount = { sin: 0, con: 0 }
+  if (segTabs && verActivos) {
+    const { count } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('etapa', tab)
+      .is('resultado', null)
+      .eq('canal', 'instagram')
+      .in('id', segIds.length ? segIds : [-1])
+    const con = count || 0
+    segCount = { con, sin: Math.max(countByTab[tab] - con, 0) }
+  }
 
   // Triage (sin calificar / lead) respeta las ubicaciones ocultas por defecto.
   const triage = tab === 'sin_calificar' || tab === 'lead'
@@ -86,6 +116,9 @@ export default async function PipelinePage({
   if (tab === 'sin_calificar') query = query.is('calificado', null)
   else if (tab === 'todos') {
     // Sin filtro: la lista completa, para buscar sin depender de la etapa.
+  } else if (tab === 'otro_canal') {
+    query = query.neq('canal', 'instagram')
+    if (sub === 'whatsapp' || sub === 'llamada') query = query.eq('canal', sub)
   } else if (tab === 'lead') {
     query = query.eq('etapa', 'lead').eq('calificado', true)
     if (web === 'con') query = query.eq('tiene_web', true)
@@ -94,8 +127,9 @@ export default async function PipelinePage({
   for (const loc of hidden) query = query.not('ubicaciones', 'ilike', `%${loc}%`)
 
   // Resultado del contacto (Iniciado/Visto): activos vs. no interesado / bloqueado.
+  // Los activos son los de Instagram: los mudados tienen su propia pestaña.
   if (segTabs) {
-    if (verActivos) query = query.is('resultado', null)
+    if (verActivos) query = query.is('resultado', null).eq('canal', 'instagram')
     else query = query.eq('resultado', res)
   }
 
@@ -111,10 +145,14 @@ export default async function PipelinePage({
     query = query.or(`username.ilike.%${safe}%,nombre_empresa.ilike.%${safe}%`)
   }
 
-  const dateCol = tab !== 'sin_calificar' && tab !== 'todos' ? ETAPA_FECHA[tab] : null
+  const dateCol =
+    tab !== 'sin_calificar' && tab !== 'todos' && tab !== 'otro_canal' ? ETAPA_FECHA[tab] : null
   if (tab === 'todos') {
     // Los más nuevos primero (la búsqueda manda; el orden es solo el de reposo).
     query = query.order('first_seen_at', { ascending: false, nullsFirst: false })
+  } else if (tab === 'otro_canal') {
+    // El que hace más tiempo espera en el canal nuevo, primero.
+    query = query.order('canal_at', { ascending: true, nullsFirst: false })
   } else if (segTabs && !verActivos) {
     // No interesados / bloqueados: los más recientes primero.
     query = query.order('resultado_at', { ascending: false, nullsFirst: false })
@@ -128,30 +166,36 @@ export default async function PipelinePage({
   }
 
   const { data: leadsData } = await query.limit(tab === 'sin_calificar' ? 100 : 300)
-  const leads = (leadsData || []) as Lead[]
+  const traidos = (leadsData || []) as Lead[]
 
   // Dueños + cantidad de seguimientos (solo para las etapas del pipeline).
   const ownersByLead = new Map<number, Owner[]>()
   const fupByLead = new Map<number, number>()
-  // Seguimientos por lead y fase: la tarjeta lo usa para saber si queda cupo para anotar.
+  // Seguimientos por lead, fase y CANAL: el cupo de una fase se cuenta por canal,
+  // así el DM viejo no te consume el primer mensaje de WhatsApp.
   const fupByLeadFase = new Map<string, number>()
-  const ids = leads.map((l) => l.id)
+  const ids = traidos.map((l) => l.id)
   if (tab !== 'sin_calificar' && ids.length) {
     const [{ data: owners }, { data: fups }] = await Promise.all([
       supabase.from('lead_owners').select('*').in('lead_id', ids),
-      supabase.from('lead_followups').select('lead_id, fase').in('lead_id', ids),
+      supabase.from('lead_followups').select('lead_id, fase, canal').in('lead_id', ids),
     ])
     for (const o of (owners || []) as Owner[]) {
       const arr = ownersByLead.get(o.lead_id) || []
       arr.push(o)
       ownersByLead.set(o.lead_id, arr)
     }
-    for (const f of (fups || []) as { lead_id: number; fase: string }[]) {
+    for (const f of (fups || []) as { lead_id: number; fase: string; canal: string }[]) {
       fupByLead.set(f.lead_id, (fupByLead.get(f.lead_id) || 0) + 1)
-      const k = `${f.lead_id}:${f.fase}`
+      const k = `${f.lead_id}:${f.fase}:${f.canal}`
       fupByLeadFase.set(k, (fupByLeadFase.get(k) || 0) + 1)
     }
   }
+
+  // "Sin número" cruza los dos canales, así que se filtra acá (ya tenemos los dueños).
+  const tieneNumero = (l: Lead) => (ownersByLead.get(l.id) || []).some((o) => o.numero)
+  const leads =
+    tab === 'otro_canal' && sub === 'sin_numero' ? traidos.filter((l) => !tieneNumero(l)) : traidos
 
   const tabLabel = TABS.find((t) => t.key === tab)!.label
 
@@ -159,6 +203,7 @@ export default async function PipelinePage({
   const volverA = (() => {
     const p = new URLSearchParams({ etapa: tab })
     if (q) p.set('q', q)
+    if (tab === 'otro_canal' && sub) p.set('sub', sub)
     if (tab === 'lead') p.set('web', web)
     if (segTabs) {
       p.set('res', res)
@@ -229,6 +274,34 @@ export default async function PipelinePage({
         </div>
       )}
 
+      {/* Sub-colas de Otro canal: conseguir el número es una tarea distinta de escribir */}
+      {tab === 'otro_canal' && (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {([null, 'sin_numero', 'whatsapp', 'llamada'] as const).map((s) => {
+            const active = sub === s
+            const qs = new URLSearchParams({ etapa: 'otro_canal' })
+            if (s) qs.set('sub', s)
+            if (q) qs.set('q', q)
+            const Icon = s === 'sin_numero' ? FiAlertCircle : s === 'whatsapp' ? FiSend : s === 'llamada' ? FiPhoneCall : FiUsers
+            const label = s === 'sin_numero' ? 'Sin número' : s === 'whatsapp' ? 'WhatsApp' : s === 'llamada' ? 'Llamar' : 'Todos'
+            return (
+              <FilterLink
+                key={s ?? 'todos'}
+                href={`/pipeline?${qs.toString()}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-foreground text-background shadow-sm'
+                    : 'bg-card/60 backdrop-blur-sm text-muted border border-border hover:bg-foreground/5 hover:text-foreground'
+                }`}
+              >
+                <Icon size={13} />
+                {label}
+              </FilterLink>
+            )
+          })}
+        </div>
+      )}
+
       {/* Filtro por resultado del contacto (etapas Iniciado y Visto) */}
       {segTabs && (
         <div className="flex gap-2 mb-4 flex-wrap">
@@ -274,6 +347,9 @@ export default async function PipelinePage({
               >
                 {s === 'sin' ? <FiClock size={13} /> : <FiCheckCircle size={13} />}
                 {s === 'sin' ? 'Sin seguimiento' : 'Con seguimiento'}
+                <span className={`text-xs tnum font-semibold ${active ? 'text-background/70' : 'text-muted'}`}>
+                  {segCount[s]}
+                </span>
               </FilterLink>
             )
           })}
@@ -344,12 +420,12 @@ export default async function PipelinePage({
                     lead={lead}
                     ownerNumero={numero}
                     ownerCount={owners.length}
-                    mostrarEtapa={tab === 'todos'}
+                    mostrarEtapa={tab === 'todos' || tab === 'otro_canal'}
                     volverA={volverA}
                     followupCount={fupByLead.get(lead.id) || 0}
                     faseUsados={(() => {
                       const f = FASE_DE_ETAPA[lead.etapa as Etapa]
-                      return f ? fupByLeadFase.get(`${lead.id}:${f}`) || 0 : 0
+                      return f ? fupByLeadFase.get(`${lead.id}:${f}:${lead.canal}`) || 0 : 0
                     })()}
                     seg={segTabs && verActivos ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined}
                   />

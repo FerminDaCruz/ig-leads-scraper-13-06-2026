@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Lead } from '@/lib/supabase'
-import { cambiarEtapa, marcarResultado, registrarSeguimiento } from '@/lib/pipeline'
+import { cambiarEtapa, marcarResultado, registrarSeguimiento, cambiarCanal } from '@/lib/pipeline'
 import {
   ETAPAS, ETAPA_LABEL, RESULTADOS, RESULTADO_LABEL, SIGUIENTE,
-  FASE_DE_ETAPA, FASE_MAX, type Etapa,
+  FASE_DE_ETAPA, FASE_MAX, CANAL_LABEL, MOTIVOS_CANAL, MOTIVO_CANAL_LABEL,
+  type Etapa, type Canal, type MotivoCanal,
 } from '@/lib/pipeline-stages'
+import { waLink, telLink } from '@/lib/phone'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight, FiClock, FiCheckCircle, FiAlertTriangle, FiSlash, FiXOctagon, FiThumbsDown, FiRotateCcw, FiEdit3, FiX } from 'react-icons/fi'
+import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight, FiClock, FiCheckCircle, FiAlertTriangle, FiSlash, FiXOctagon, FiThumbsDown, FiRotateCcw, FiEdit3, FiX, FiSend, FiPhoneCall, FiInstagram, FiCheck, FiAlertCircle } from 'react-icons/fi'
 import type { Resultado } from '@/lib/pipeline-stages'
 
 // yyyy-mm-dd en horario de Argentina (para <input type="date">).
@@ -33,6 +35,17 @@ const RES_BADGE: Record<Resultado, string> = {
   no_interesado: 'bg-muted/15 text-muted',
   bloqueado: 'bg-red-500/12 text-red-600 dark:text-red-400',
   no_recibe_mensajes: 'bg-amber-500/12 text-amber-600 dark:text-amber-400',
+}
+
+const CANAL_ICON: Record<Canal, typeof FiSlash> = {
+  instagram: FiInstagram,
+  whatsapp: FiSend,
+  llamada: FiPhoneCall,
+}
+const CANAL_BADGE: Record<Canal, string> = {
+  instagram: 'bg-foreground/[0.07] text-muted',
+  whatsapp: 'bg-green-500/12 text-green-700 dark:text-green-400',
+  llamada: 'bg-blue-500/12 text-blue-700 dark:text-blue-400',
 }
 
 interface SegEstado {
@@ -59,6 +72,8 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
   const [anotando, setAnotando] = useState(false)
   const [fecha, setFecha] = useState(hoyInput)
   const [mensaje, setMensaje] = useState('')
+  // Mudanza de canal: se elige el canal desde el menú y el motivo acá.
+  const [mudando, setMudando] = useState<Canal | null>(null)
   const next = SIGUIENTE[lead.etapa as Etapa]
   const flagged = lead.resultado === 'no_interesado' || lead.resultado === 'bloqueado'
   // Un lead con resultado no arrastra la alerta de seguimiento (contacto cerrado).
@@ -67,6 +82,13 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
   // Fase de seguimiento de la etapa actual; null si la etapa no admite (lead / agendado / cerrado).
   const fase = FASE_DE_ETAPA[lead.etapa as Etapa]
   const puedeAnotar = !!fase && faseUsados < FASE_MAX[fase]
+
+  const canal = lead.canal as Canal
+  const CanalIcon = CANAL_ICON[canal]
+  const wa = canal === 'whatsapp' ? waLink(ownerNumero) : null
+  const tel = canal === 'llamada' ? telLink(ownerNumero) : null
+  // Sin número no hay a quién escribir: la tarea pasa a ser conseguirlo.
+  const sinNumero = canal !== 'instagram' && !ownerNumero
 
   const cerrarAnotacion = () => {
     setAnotando(false)
@@ -77,8 +99,16 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
   const confirmarAnotacion = () => {
     if (!fase) return
     startTransition(async () => {
-      await registrarSeguimiento(lead.id, fase, mensaje, fromDateInput(fecha))
+      await registrarSeguimiento(lead.id, fase, canal, mensaje, fromDateInput(fecha))
       cerrarAnotacion()
+    })
+  }
+
+  const confirmarMudanza = (motivo: MotivoCanal) => {
+    if (!mudando) return
+    startTransition(async () => {
+      await cambiarCanal(lead.id, mudando, motivo)
+      setMudando(null)
     })
   }
 
@@ -119,6 +149,12 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
               {lead.calificado === null ? 'Sin calificar' : ETAPA_LABEL[lead.etapa as Etapa] ?? lead.etapa}
             </span>
           )}
+          {canal !== 'instagram' && (
+            <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[0.65rem] font-semibold ${CANAL_BADGE[canal]}`}>
+              <CanalIcon size={10} />
+              {CANAL_LABEL[canal]}
+            </span>
+          )}
           {flagged && (() => {
             const RIcon = RES_ICON[lead.resultado!]
             return (
@@ -138,6 +174,16 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
           {ownerNumero && (
             <span className="inline-flex items-center gap-1">
               <FiPhone size={11} /> {ownerNumero}{ownerCount > 1 ? ` +${ownerCount - 1}` : ''}
+            </span>
+          )}
+          {sinNumero && (
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+              <FiAlertCircle size={11} /> Falta el número
+            </span>
+          )}
+          {canal !== 'instagram' && lead.canal_motivo && (
+            <span className="inline-flex items-center gap-1">
+              {MOTIVO_CANAL_LABEL[lead.canal_motivo as MotivoCanal]}
             </span>
           )}
           <span className="inline-flex items-center gap-1">
@@ -168,6 +214,27 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
 
       {/* Acciones */}
       <div className="relative pointer-events-auto shrink-0 flex items-center justify-end gap-1.5">
+        {/* Abre WhatsApp / el teléfono. Contactar es afuera; anotarlo, acá. */}
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Escribir a ${ownerNumero} por WhatsApp`}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-green-600/40 text-green-700 dark:text-green-400 hover:bg-green-500/10 active:scale-[0.97] transition"
+          >
+            <FiSend size={13} /> WhatsApp
+          </a>
+        )}
+        {tel && (
+          <a
+            href={tel}
+            title={`Llamar a ${ownerNumero}`}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-blue-600/40 text-blue-700 dark:text-blue-400 hover:bg-blue-500/10 active:scale-[0.97] transition"
+          >
+            <FiPhoneCall size={13} /> Llamar
+          </a>
+        )}
         {next && (
           <button
             onClick={() => startTransition(() => cambiarEtapa(lead.id, next.etapa))}
@@ -232,10 +299,60 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
                 <FiRotateCcw size={14} className="mr-2" /> Reactivar
               </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Canal de contacto</DropdownMenuLabel>
+            {(['whatsapp', 'llamada'] as const).map((c) => {
+              const CIcon = CANAL_ICON[c]
+              return (
+                <DropdownMenuItem
+                  key={c}
+                  onClick={() => setMudando(c)}
+                  className={canal === c ? 'font-semibold text-foreground' : ''}
+                >
+                  <CIcon size={14} className="mr-2" />
+                  Pasar a {CANAL_LABEL[c]}
+                </DropdownMenuItem>
+              )
+            })}
+            {canal !== 'instagram' && (
+              <DropdownMenuItem onClick={() => startTransition(() => cambiarCanal(lead.id, 'instagram', null))}>
+                <FiInstagram size={14} className="mr-2" /> Volver a Instagram
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       </div>
+
+      {/* Mudanza de canal: falta el motivo, que es lo que después querés medir. */}
+      {mudando && (
+        <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2.5">
+          <p className="text-xs text-muted">
+            Pasar a <span className="font-semibold text-foreground">{CANAL_LABEL[mudando]}</span> porque…
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {MOTIVOS_CANAL.map((m) => (
+              <button
+                key={m}
+                onClick={() => confirmarMudanza(m)}
+                disabled={isPending}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border border-border text-muted hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+              >
+                <FiCheck size={12} /> {MOTIVO_CANAL_LABEL[m]}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => setMudando(null)}
+              disabled={isPending}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium text-muted hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+            >
+              <FiX size={13} /> Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Anotar seguimiento: registra lo que ya se mandó, no lo envía. */}
       {anotando && puedeAnotar && (

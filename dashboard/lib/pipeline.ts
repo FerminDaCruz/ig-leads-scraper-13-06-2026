@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { getSupabase } from './supabase'
-import { ETAPAS, ETAPA_FECHA, FECHA_COLS, FASE_MAX, isEtapa, isResultado, type Etapa, type Fase } from './pipeline-stages'
+import {
+  ETAPAS, ETAPA_FECHA, FECHA_COLS, FASE_MAX,
+  isEtapa, isResultado, isCanal, isMotivoCanal,
+  type Etapa, type Fase,
+} from './pipeline-stages'
 
 function revalidar(id?: number) {
   revalidatePath('/pipeline')
@@ -49,6 +53,26 @@ export async function marcarResultado(id: number, resultado: string | null) {
     }
   }
   await supabase.from('leads').update(update).eq('id', id)
+  revalidar(id)
+}
+
+// ── Canal ───────────────────────────────────────────────────────────────────
+// Cambia por dónde se sigue el contacto. No toca etapa, fechas ni seguimientos:
+// lo hecho por Instagram sigue ahí, solo cambia por dónde seguís vos.
+export async function cambiarCanal(id: number, canal: string, motivo: string | null) {
+  if (!isCanal(canal)) return
+  if (motivo !== null && !isMotivoCanal(motivo)) return
+  const supabase = getSupabase()
+  const volviendo = canal === 'instagram'
+  await supabase
+    .from('leads')
+    .update({
+      canal,
+      // Volver a Instagram es volver al canal por defecto: no hay motivo que guardar.
+      canal_motivo: volviendo ? null : motivo,
+      canal_at: volviendo ? null : new Date().toISOString(),
+    })
+    .eq('id', id)
   revalidar(id)
 }
 
@@ -104,15 +128,30 @@ export async function eliminarOwner(id: number, leadId: number) {
 // ── Seguimientos ────────────────────────────────────────────────────────────
 // Anota un seguimiento ya hecho: fecha + mensaje en un solo paso. Nada se escribe
 // hasta confirmar, así que no quedan registros vacíos si el usuario se arrepiente.
-export async function registrarSeguimiento(leadId: number, fase: string, mensaje: string, fechaIso: string | null) {
+// El cupo de la fase se cuenta POR CANAL: el DM que ya mandaste no te consume el
+// primer mensaje de WhatsApp.
+export async function registrarSeguimiento(
+  leadId: number,
+  fase: string,
+  canal: string,
+  mensaje: string,
+  fechaIso: string | null
+) {
   if (!(fase in FASE_MAX)) return
+  if (!isCanal(canal)) return
   const supabase = getSupabase()
-  const { data } = await supabase.from('lead_followups').select('indice').eq('lead_id', leadId).eq('fase', fase)
+  const { data } = await supabase
+    .from('lead_followups')
+    .select('indice')
+    .eq('lead_id', leadId)
+    .eq('fase', fase)
+    .eq('canal', canal)
   const usados = (data || []).length
   if (usados >= FASE_MAX[fase as Fase]) return
   await supabase.from('lead_followups').insert({
     lead_id: leadId,
     fase,
+    canal,
     indice: usados + 1,
     mensaje: mensaje.trim() || null,
     fecha: fechaIso,

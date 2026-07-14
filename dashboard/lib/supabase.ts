@@ -29,6 +29,13 @@ export interface Lead {
   etapa: string
   resultado: 'no_interesado' | 'bloqueado' | 'no_recibe_mensajes' | null
   resultado_at: string | null
+  // Canal por el que se sigue el contacto (no por el que se hizo todo).
+  canal: 'instagram' | 'whatsapp' | 'llamada'
+  canal_motivo: 'no_recibe_mensajes' | 'tiene_cm' | 'no_responde_ig' | null
+  canal_at: string | null
+  // En espera: ni activo ni muerto, se vuelve a contactar en esta fecha.
+  recontactar_at: string | null
+  espera_motivo: 'mas_adelante' | 'derivado_al_dueno' | null
   visto_at: string | null
   interesado_at: string | null
   calendly_at: string | null
@@ -49,6 +56,7 @@ export interface Followup {
   id: number
   lead_id: number
   fase: string
+  canal: 'instagram' | 'whatsapp' | 'llamada'
   indice: number
   enviado: boolean
   mensaje: string | null
