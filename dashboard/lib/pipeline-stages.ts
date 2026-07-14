@@ -52,14 +52,40 @@ export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).
 // ── Resultado del contacto (ortogonal a la etapa) ─────────────────────────────
 // null = activo. Marca leads que dijeron que no o que bloquearon: siguen
 // calificados e iniciados, solo se registra el desenlace.
-export const RESULTADOS = ['no_interesado', 'bloqueado', 'no_recibe_mensajes'] as const
-export type Resultado = (typeof RESULTADOS)[number]
+// Un resultado es un DESENLACE. "No recibe mensajes" no lo es: ese lead está
+// vivo, solo que no lo alcanzás por IG — hoy eso es un motivo de canal. Sigue en
+// el tipo (hay leads viejos con ese valor) pero ya no se puede elegir.
+export const RESULTADOS = ['no_interesado', 'bloqueado'] as const
+export type Resultado = 'no_interesado' | 'bloqueado' | 'no_recibe_mensajes'
 export const RESULTADO_LABEL: Record<Resultado, string> = {
   no_interesado: 'No interesado',
   bloqueado: 'Bloqueado',
   no_recibe_mensajes: 'No recibe mensajes',
 }
 export const isResultado = (v: string): v is Resultado => (RESULTADOS as readonly string[]).includes(v)
+
+// ── Canal de contacto (ortogonal a la etapa y al resultado) ───────────────────
+// Por dónde se sigue el contacto AHORA. Lo ya hecho por otro canal no se pierde:
+// vive en las fechas de etapa y en lead_followups, que guardan su propio canal.
+export const CANALES = ['instagram', 'whatsapp', 'llamada'] as const
+export type Canal = (typeof CANALES)[number]
+export const CANAL_LABEL: Record<Canal, string> = {
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+  llamada: 'Llamada',
+}
+export const isCanal = (v: string): v is Canal => (CANALES as readonly string[]).includes(v)
+
+// Por qué se dejó Instagram.
+export const MOTIVOS_CANAL = ['no_recibe_mensajes', 'tiene_cm', 'no_responde_ig'] as const
+export type MotivoCanal = (typeof MOTIVOS_CANAL)[number]
+export const MOTIVO_CANAL_LABEL: Record<MotivoCanal, string> = {
+  no_recibe_mensajes: 'No recibe mensajes',
+  tiene_cm: 'Tiene community manager',
+  no_responde_ig: 'No responde por Instagram',
+}
+export const isMotivoCanal = (v: string): v is MotivoCanal =>
+  (MOTIVOS_CANAL as readonly string[]).includes(v)
 
 // ── Metas (KPI) del embudo ────────────────────────────────────────────────────
 // 'iniciado' es un número total; el resto es un % sobre los iniciados del mes.

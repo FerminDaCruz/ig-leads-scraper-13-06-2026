@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead, Owner, Followup } from '@/lib/supabase'
-import { EtapaControl, LeadFieldsEditor, OwnersEditor, FollowupsEditor } from '@/components/pipeline/editors'
+import { EtapaControl, CanalControl, LeadFieldsEditor, OwnersEditor, FollowupsEditor } from '@/components/pipeline/editors'
+import type { Canal } from '@/lib/pipeline-stages'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -87,6 +88,10 @@ export default async function LeadDetailPage({
         <EtapaControl lead={lead} />
       </Section>
 
+      <Section title="Canal de contacto">
+        <CanalControl lead={lead} />
+      </Section>
+
       <Section title="Datos">
         <LeadFieldsEditor lead={lead} />
       </Section>
@@ -96,7 +101,7 @@ export default async function LeadDetailPage({
       </Section>
 
       <Section title="Seguimientos">
-        <FollowupsEditor leadId={lead.id} followups={followups} />
+        <FollowupsEditor leadId={lead.id} canal={lead.canal as Canal} followups={followups} />
       </Section>
     </main>
   )
