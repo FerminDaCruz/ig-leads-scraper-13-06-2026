@@ -155,6 +155,18 @@ export default async function PipelinePage({
 
   const tabLabel = TABS.find((t) => t.key === tab)!.label
 
+  // Vista actual, para que el detalle del lead sepa a dónde volver.
+  const volverA = (() => {
+    const p = new URLSearchParams({ etapa: tab })
+    if (q) p.set('q', q)
+    if (tab === 'lead') p.set('web', web)
+    if (segTabs) {
+      p.set('res', res)
+      if (verActivos) p.set('seg', seg)
+    }
+    return p.toString()
+  })()
+
   return (
     <main className="max-w-5xl mx-auto px-4 py-6">
       <div className="mb-4">
@@ -333,6 +345,7 @@ export default async function PipelinePage({
                     ownerNumero={numero}
                     ownerCount={owners.length}
                     mostrarEtapa={tab === 'todos'}
+                    volverA={volverA}
                     followupCount={fupByLead.get(lead.id) || 0}
                     faseUsados={(() => {
                       const f = FASE_DE_ETAPA[lead.etapa as Etapa]

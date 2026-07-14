@@ -49,10 +49,12 @@ interface Props {
   faseUsados: number
   /** En la pestaña Todos se mezclan etapas: la tarjeta necesita decir en cuál está. */
   mostrarEtapa?: boolean
+  /** Query de la vista actual del pipeline: el detalle la usa para volver acá. */
+  volverA?: string
   seg?: SegEstado
 }
 
-export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, faseUsados, mostrarEtapa, seg }: Props) {
+export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, faseUsados, mostrarEtapa, volverA, seg }: Props) {
   const [isPending, startTransition] = useTransition()
   const [anotando, setAnotando] = useState(false)
   const [fecha, setFecha] = useState(hoyInput)
@@ -92,7 +94,11 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
     >
       <div className="relative flex items-center gap-2">
       {/* Click en el resto de la card → detalle */}
-      <Link href={`/pipeline/${lead.id}`} aria-label={`Abrir ${lead.username}`} className="absolute -inset-3 rounded-2xl" />
+      <Link
+        href={`/pipeline/${lead.id}${volverA ? `?from=${encodeURIComponent(volverA)}` : ''}`}
+        aria-label={`Abrir ${lead.username}`}
+        className="absolute -inset-3 rounded-2xl"
+      />
 
       {/* Info (los clics pasan al overlay, salvo el nombre) */}
       <div className="relative flex-1 min-w-0 pointer-events-none">
