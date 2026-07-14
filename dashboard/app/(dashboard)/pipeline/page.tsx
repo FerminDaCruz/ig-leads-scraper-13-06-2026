@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSupabase, Lead, Owner } from '@/lib/supabase'
 import { getHiddenLocations } from '@/lib/hidden'
-import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, RESULTADOS, RESULTADO_LABEL, type Etapa, type Resultado } from '@/lib/pipeline-stages'
+import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, FASE_DE_ETAPA, RESULTADOS, RESULTADO_LABEL, type Etapa, type Resultado } from '@/lib/pipeline-stages'
 import { PipelineCard } from '@/components/pipeline/PipelineCard'
 import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
 import { FilterLink, PendingDim } from '@/components/NavPending'
@@ -26,17 +26,19 @@ function segEstado(contactedAt: string | null, hecho: boolean): { estado: 'hecho
   return { estado: 'pendiente', dias: SEG_DIAS - transcurridos } // días para el seguimiento
 }
 
-type TabKey = 'sin_calificar' | Etapa
+// 'todos' = sin filtro de etapa; sirve para buscar cualquier lead con la lupa.
+type TabKey = 'sin_calificar' | 'todos' | Etapa
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'sin_calificar', label: 'Sin calificar' },
   ...ETAPAS.map((e) => ({ key: e as TabKey, label: ETAPA_LABEL[e] })),
+  { key: 'todos', label: 'Todos' },
 ]
 const isTab = (v: string): v is TabKey => TABS.some((t) => t.key === v)
 
 async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
   let q = supabase.from('leads').select('*', { count: 'exact', head: true })
   if (key === 'sin_calificar') q = q.is('calificado', null)
-  else {
+  else if (key !== 'todos') {
     q = q.eq('etapa', key)
     if (key === 'lead') q = q.eq('calificado', true)
     // Iniciado/Visto muestran los activos por defecto: el contador acompaña.
@@ -82,7 +84,9 @@ export default async function PipelinePage({
 
   let query = supabase.from('leads').select('*')
   if (tab === 'sin_calificar') query = query.is('calificado', null)
-  else if (tab === 'lead') {
+  else if (tab === 'todos') {
+    // Sin filtro: la lista completa, para buscar sin depender de la etapa.
+  } else if (tab === 'lead') {
     query = query.eq('etapa', 'lead').eq('calificado', true)
     if (web === 'con') query = query.eq('tiene_web', true)
     else query = query.or('tiene_web.eq.false,tiene_web.is.null')
@@ -107,8 +111,11 @@ export default async function PipelinePage({
     query = query.or(`username.ilike.%${safe}%,nombre_empresa.ilike.%${safe}%`)
   }
 
-  const dateCol = tab !== 'sin_calificar' ? ETAPA_FECHA[tab] : null
-  if (segTabs && !verActivos) {
+  const dateCol = tab !== 'sin_calificar' && tab !== 'todos' ? ETAPA_FECHA[tab] : null
+  if (tab === 'todos') {
+    // Los más nuevos primero (la búsqueda manda; el orden es solo el de reposo).
+    query = query.order('first_seen_at', { ascending: false, nullsFirst: false })
+  } else if (segTabs && !verActivos) {
     // No interesados / bloqueados: los más recientes primero.
     query = query.order('resultado_at', { ascending: false, nullsFirst: false })
   } else if (segTabs && seg === 'sin') {
@@ -126,19 +133,23 @@ export default async function PipelinePage({
   // Dueños + cantidad de seguimientos (solo para las etapas del pipeline).
   const ownersByLead = new Map<number, Owner[]>()
   const fupByLead = new Map<number, number>()
+  // Seguimientos por lead y fase: la tarjeta lo usa para saber si queda cupo para anotar.
+  const fupByLeadFase = new Map<string, number>()
   const ids = leads.map((l) => l.id)
   if (tab !== 'sin_calificar' && ids.length) {
     const [{ data: owners }, { data: fups }] = await Promise.all([
       supabase.from('lead_owners').select('*').in('lead_id', ids),
-      supabase.from('lead_followups').select('lead_id').in('lead_id', ids),
+      supabase.from('lead_followups').select('lead_id, fase').in('lead_id', ids),
     ])
     for (const o of (owners || []) as Owner[]) {
       const arr = ownersByLead.get(o.lead_id) || []
       arr.push(o)
       ownersByLead.set(o.lead_id, arr)
     }
-    for (const f of (fups || []) as { lead_id: number }[]) {
+    for (const f of (fups || []) as { lead_id: number; fase: string }[]) {
       fupByLead.set(f.lead_id, (fupByLead.get(f.lead_id) || 0) + 1)
+      const k = `${f.lead_id}:${f.fase}`
+      fupByLeadFase.set(k, (fupByLeadFase.get(k) || 0) + 1)
     }
   }
 
@@ -321,7 +332,12 @@ export default async function PipelinePage({
                     lead={lead}
                     ownerNumero={numero}
                     ownerCount={owners.length}
+                    mostrarEtapa={tab === 'todos'}
                     followupCount={fupByLead.get(lead.id) || 0}
+                    faseUsados={(() => {
+                      const f = FASE_DE_ETAPA[lead.etapa as Etapa]
+                      return f ? fupByLeadFase.get(`${lead.id}:${f}`) || 0 : 0
+                    })()}
                     seg={segTabs && verActivos ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined}
                   />
                 )

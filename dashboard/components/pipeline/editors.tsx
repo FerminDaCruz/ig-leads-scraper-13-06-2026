@@ -10,12 +10,12 @@ import {
 import {
   cambiarEtapa, actualizarFecha, actualizarCampos, marcarResultado,
   agregarOwner, actualizarOwner, eliminarOwner,
-  agregarFollowup, actualizarFollowup, eliminarFollowup,
+  registrarSeguimiento, actualizarFollowup, eliminarFollowup,
 } from '@/lib/pipeline'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiChevronDown, FiPlus, FiTrash2, FiSlash, FiXOctagon, FiThumbsDown } from 'react-icons/fi'
+import { FiChevronDown, FiPlus, FiTrash2, FiSlash, FiXOctagon, FiThumbsDown, FiCheck, FiX } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
   no_interesado: FiThumbsDown,
@@ -30,6 +30,8 @@ const inputCls =
 const toDateInput = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(iso)) : ''
 const fromDateInput = (d: string) => (d ? `${d}T12:00:00-03:00` : null)
+const hoyInput = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())
 
 // ── Tri-state Sí / No / — ────────────────────────────────────────────────────
 function TriToggle({ value, onChange, disabled }: { value: boolean | null; onChange: (v: boolean | null) => void; disabled?: boolean }) {
@@ -255,8 +257,172 @@ export function OwnersEditor({ leadId, owners }: { leadId: number; owners: Owner
 }
 
 // ── Seguimientos ─────────────────────────────────────────────────────────────
-export function FollowupsEditor({ leadId, followups }: { leadId: number; followups: Followup[] }) {
+// Un seguimiento ya existente. Se edita en local y no toca la base hasta
+// confirmar: un solo update con los tres campos en vez de uno por campo, y el
+// usuario puede descartar (antes, hacer clic afuera ya guardaba).
+function FollowupItem({ f, leadId }: { f: Followup; leadId: number }) {
   const [isPending, startTransition] = useTransition()
+  const [guardado, setGuardado] = useState(false)
+  const [mensaje, setMensaje] = useState(f.mensaje || '')
+  const [fecha, setFecha] = useState(toDateInput(f.fecha))
+  const [enviado, setEnviado] = useState(f.enviado)
+
+  const sucio =
+    mensaje.trim() !== (f.mensaje || '').trim() ||
+    fecha !== toDateInput(f.fecha) ||
+    enviado !== f.enviado
+
+  const descartar = () => {
+    setMensaje(f.mensaje || '')
+    setFecha(toDateInput(f.fecha))
+    setEnviado(f.enviado)
+  }
+
+  const confirmar = () =>
+    startTransition(async () => {
+      await actualizarFollowup(f.id, leadId, {
+        mensaje: mensaje.trim() || null,
+        fecha: fromDateInput(fecha),
+        enviado,
+      })
+      setGuardado(true)
+      setTimeout(() => setGuardado(false), 2000)
+    })
+
+  return (
+    <div className={`rounded-xl border bg-card/50 p-3 flex flex-col gap-2 transition-colors ${sucio ? 'border-foreground/30' : 'border-border'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted">#{f.indice}</span>
+          {guardado && !sucio && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+              <FiCheck size={12} /> Guardado
+            </span>
+          )}
+          {sucio && <span className="text-xs text-muted">Sin guardar</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="inline-flex items-center gap-1.5 text-xs text-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enviado}
+              onChange={(e) => setEnviado(e.target.checked)}
+              disabled={isPending}
+              className="accent-foreground"
+            />
+            Enviado
+          </label>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            disabled={isPending}
+            className="px-2 py-1 text-xs rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream border-surface dark:border-navy-border focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+          />
+          <button
+            onClick={() => startTransition(() => eliminarFollowup(f.id, leadId))}
+            disabled={isPending}
+            title="Eliminar seguimiento"
+            className="grid place-items-center h-7 w-7 rounded-lg text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+          >
+            <FiTrash2 size={13} />
+          </button>
+        </div>
+      </div>
+      <textarea
+        value={mensaje}
+        onChange={(e) => setMensaje(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') descartar()
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && sucio) confirmar()
+        }}
+        rows={2}
+        disabled={isPending}
+        placeholder="Mensaje del seguimiento..."
+        className={`${inputCls} resize-y text-sm disabled:opacity-50`}
+      />
+      {sucio && (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={descartar}
+            disabled={isPending}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium text-muted hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+          >
+            <FiX size={13} /> Descartar
+          </button>
+          <button
+            onClick={confirmar}
+            disabled={isPending}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-foreground text-background hover:opacity-90 active:scale-[0.97] transition disabled:opacity-50"
+          >
+            <FiCheck size={13} /> {isPending ? 'Guardando...' : 'Confirmar'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Borrador: nada se escribe en la base hasta confirmar.
+function NuevoFollowup({ leadId, fase, onCerrar }: { leadId: number; fase: Fase; onCerrar: () => void }) {
+  const [isPending, startTransition] = useTransition()
+  const [fecha, setFecha] = useState(hoyInput)
+  const [mensaje, setMensaje] = useState('')
+
+  const confirmar = () =>
+    startTransition(async () => {
+      await registrarSeguimiento(leadId, fase, mensaje, fromDateInput(fecha))
+      onCerrar()
+    })
+
+  return (
+    <div className="rounded-xl border border-dashed border-foreground/30 bg-foreground/[0.03] p-3 flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted">Nuevo seguimiento</span>
+        <input
+          type="date"
+          value={fecha}
+          max={hoyInput()}
+          onChange={(e) => setFecha(e.target.value)}
+          disabled={isPending}
+          className="px-2 py-1 text-xs rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream border-surface dark:border-navy-border focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+        />
+      </div>
+      <textarea
+        autoFocus
+        value={mensaje}
+        onChange={(e) => setMensaje(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCerrar()
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) confirmar()
+        }}
+        rows={2}
+        disabled={isPending}
+        placeholder="Mensaje del seguimiento que mandaste..."
+        className={`${inputCls} resize-y text-sm disabled:opacity-50`}
+      />
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={onCerrar}
+          disabled={isPending}
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium text-muted hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+        >
+          <FiX size={13} /> Cancelar
+        </button>
+        <button
+          onClick={confirmar}
+          disabled={isPending}
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-foreground text-background hover:opacity-90 active:scale-[0.97] transition disabled:opacity-50"
+        >
+          <FiCheck size={13} /> {isPending ? 'Guardando...' : 'Confirmar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function FollowupsEditor({ leadId, followups }: { leadId: number; followups: Followup[] }) {
+  const [nuevaFase, setNuevaFase] = useState<Fase | null>(null)
 
   return (
     <div className="flex flex-col gap-5">
@@ -264,7 +430,9 @@ export function FollowupsEditor({ leadId, followups }: { leadId: number; followu
         const items = followups
           .filter((f) => f.fase === fase)
           .sort((a, b) => a.indice - b.indice)
-        const puedeAgregar = items.length < FASE_MAX[fase as Fase]
+        const abriendo = nuevaFase === fase
+        // El borrador ocupa un lugar: no ofrece agregar de más.
+        const puedeAgregar = items.length + (abriendo ? 1 : 0) < FASE_MAX[fase as Fase]
         return (
           <div key={fase} className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
@@ -274,8 +442,7 @@ export function FollowupsEditor({ leadId, followups }: { leadId: number; followu
               </h3>
               {puedeAgregar && (
                 <button
-                  onClick={() => startTransition(() => agregarFollowup(leadId, fase))}
-                  disabled={isPending}
+                  onClick={() => setNuevaFase(fase as Fase)}
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg text-muted hover:text-foreground hover:bg-foreground/5 border border-dashed border-border transition-colors"
                 >
                   <FiPlus size={12} /> Agregar
@@ -283,48 +450,12 @@ export function FollowupsEditor({ leadId, followups }: { leadId: number; followu
               )}
             </div>
 
-            {items.length === 0 ? (
-              <p className="text-xs text-muted">Sin seguimientos.</p>
-            ) : (
-              items.map((f) => (
-                <div key={f.id} className="rounded-xl border border-border bg-card/50 p-3 flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-muted">#{f.indice}</span>
-                    <div className="flex items-center gap-2">
-                      <label className="inline-flex items-center gap-1.5 text-xs text-muted cursor-pointer">
-                        <input
-                          type="checkbox"
-                          defaultChecked={f.enviado}
-                          onChange={(e) => startTransition(() => actualizarFollowup(f.id, leadId, { enviado: e.target.checked }))}
-                          className="accent-foreground"
-                        />
-                        Enviado
-                      </label>
-                      <input
-                        type="date"
-                        defaultValue={toDateInput(f.fecha)}
-                        onChange={(e) => startTransition(() => actualizarFollowup(f.id, leadId, { fecha: fromDateInput(e.target.value) }))}
-                        className="px-2 py-1 text-xs rounded-lg border bg-white dark:bg-navy-card text-navy dark:text-cream border-surface dark:border-navy-border focus:outline-none focus:ring-2 focus:ring-brand"
-                      />
-                      <button
-                        onClick={() => startTransition(() => eliminarFollowup(f.id, leadId))}
-                        disabled={isPending}
-                        title="Eliminar seguimiento"
-                        className="grid place-items-center h-7 w-7 rounded-lg text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                      >
-                        <FiTrash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                  <textarea
-                    defaultValue={f.mensaje || ''}
-                    onBlur={(e) => startTransition(() => actualizarFollowup(f.id, leadId, { mensaje: e.target.value.trim() || null }))}
-                    rows={2}
-                    placeholder="Mensaje del seguimiento..."
-                    className={`${inputCls} resize-y text-sm`}
-                  />
-                </div>
-              ))
+            {items.length === 0 && !abriendo && <p className="text-xs text-muted">Sin seguimientos.</p>}
+            {items.map((f) => (
+              <FollowupItem key={f.id} f={f} leadId={leadId} />
+            ))}
+            {abriendo && (
+              <NuevoFollowup leadId={leadId} fase={fase as Fase} onCerrar={() => setNuevaFase(null)} />
             )}
           </div>
         )

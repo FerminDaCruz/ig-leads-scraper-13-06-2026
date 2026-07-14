@@ -102,13 +102,23 @@ export async function eliminarOwner(id: number, leadId: number) {
 }
 
 // ── Seguimientos ────────────────────────────────────────────────────────────
-export async function agregarFollowup(leadId: number, fase: string) {
+// Anota un seguimiento ya hecho: fecha + mensaje en un solo paso. Nada se escribe
+// hasta confirmar, así que no quedan registros vacíos si el usuario se arrepiente.
+export async function registrarSeguimiento(leadId: number, fase: string, mensaje: string, fechaIso: string | null) {
   if (!(fase in FASE_MAX)) return
   const supabase = getSupabase()
   const { data } = await supabase.from('lead_followups').select('indice').eq('lead_id', leadId).eq('fase', fase)
   const usados = (data || []).length
   if (usados >= FASE_MAX[fase as Fase]) return
-  await supabase.from('lead_followups').insert({ lead_id: leadId, fase, indice: usados + 1, mensaje: '', enviado: true, source: 'manual' })
+  await supabase.from('lead_followups').insert({
+    lead_id: leadId,
+    fase,
+    indice: usados + 1,
+    mensaje: mensaje.trim() || null,
+    fecha: fechaIso,
+    enviado: true,
+    source: 'manual',
+  })
   revalidar(leadId)
 }
 

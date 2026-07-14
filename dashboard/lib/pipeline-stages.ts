@@ -35,6 +35,18 @@ export const FASE_LABEL: Record<Fase, string> = {
 }
 export const FASE_MAX: Record<Fase, number> = { iniciado: 1, interesado: 7, calendly: 7 }
 
+// Fase de seguimiento que le corresponde a un lead según su etapa actual.
+// Las etapas sin fase (lead / agendado / cerrado) no admiten seguimientos.
+export const FASE_DE_ETAPA: Record<Etapa, Fase | null> = {
+  lead: null,
+  iniciado: 'iniciado',
+  visto: 'iniciado',
+  interesado: 'interesado',
+  calendly_enviado: 'calendly',
+  agendado: null,
+  cerrado: null,
+}
+
 export const isEtapa = (v: string): v is Etapa => (ETAPAS as readonly string[]).includes(v)
 
 // ── Resultado del contacto (ortogonal a la etapa) ─────────────────────────────

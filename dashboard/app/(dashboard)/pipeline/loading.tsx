@@ -12,7 +12,7 @@ export default function Loading() {
       <Skeleton className="h-[2.4rem] w-full rounded-xl mb-4" />
 
       {/* Tabs de etapa */}
-      <SkeletonTabs count={6} className="mb-5" />
+      <SkeletonTabs count={9} className="mb-5" />
 
       {/* Leads */}
       <div className="flex flex-col gap-3">
