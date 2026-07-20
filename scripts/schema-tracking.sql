@@ -14,17 +14,19 @@ alter table public.leads add column if not exists notas          text;
 alter table public.leads add column if not exists etapa          text not null default 'lead';
 
 -- Fechas por etapa (la de "iniciado" reusa la columna ya existente contacted_at)
+-- visto_at NO es una etapa: marca la apertura del mensaje (característica del lead).
 alter table public.leads add column if not exists visto_at       timestamptz;
 alter table public.leads add column if not exists interesado_at  timestamptz;
 alter table public.leads add column if not exists calendly_at    timestamptz;
 alter table public.leads add column if not exists agendado_at    timestamptz;
 alter table public.leads add column if not exists cerrado_at     timestamptz;
 
--- Restringe los valores válidos de etapa (idempotente).
+-- Restringe los valores válidos de etapa (idempotente). 'visto' no está: es una
+-- característica (visto_at), no una etapa. Ver scripts/schema-visto-caracteristica.sql.
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'leads_etapa_check') then
     alter table public.leads add constraint leads_etapa_check
-      check (etapa in ('lead','iniciado','visto','interesado','calendly_enviado','agendado','cerrado'));
+      check (etapa in ('lead','iniciado','interesado','calendly_enviado','agendado','cerrado'));
   end if;
 end $$;
 
@@ -39,7 +41,7 @@ create table if not exists public.lead_owners (
 create index if not exists lead_owners_lead_id_idx on public.lead_owners(lead_id);
 
 -- ── Seguimientos / Follow-ups ───────────────────────────────────────────────
--- fase: 'iniciado' (compartido iniciado/visto, máx. 1) ·
+-- fase: 'iniciado' (todos los contactados sin respuesta, máx. 1) ·
 --       'interesado' (máx. 7) · 'calendly' (máx. 7). El tope lo controla la app.
 create table if not exists public.lead_followups (
   id          bigint generated always as identity primary key,

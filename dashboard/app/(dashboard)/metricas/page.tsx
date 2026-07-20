@@ -173,6 +173,8 @@ export default async function MetricasPage({
     FUNNEL.map(async (s) => {
       let q = supabase.from('leads').select('id', { count: 'exact', head: true })
       if (range) q = q.gte(s.dateCol, range.start).lt(s.dateCol, range.end)
+      // 'visto' ya no es etapa: la apertura (OP) se cuenta por visto_at.
+      else if (s.code === 'OP') q = q.not('visto_at', 'is', null)
       else q = q.in('etapa', reachedFrom(s.etapa))
       const { count } = await q
       return count || 0

@@ -47,11 +47,13 @@ export default async function Home() {
     count(sel().is('calificado', null)),
     count(sel().eq('etapa', 'lead').eq('calificado', true)),
     count(sel().eq('etapa', 'cerrado')),
-    supabase.from('lead_followups').select('lead_id').eq('fase', 'iniciado'),
-    supabase.from('leads').select('id').in('etapa', ['iniciado', 'visto']).is('resultado', null).lte('contacted_at', sevenAgo),
+    supabase.from('lead_followups').select('lead_id').eq('fase', 'iniciado').eq('canal', 'instagram'),
+    supabase.from('leads').select('id').eq('etapa', 'iniciado').is('resultado', null).eq('canal', 'instagram').lte('contacted_at', sevenAgo),
   ])
 
-  // Seguimientos vencidos: en iniciado/visto, contactados hace ≥1 semana y sin seguimiento.
+  // Seguimientos vencidos: SOLO Instagram (los mudados a WhatsApp/llamada tienen su
+  // propio flujo en "Otro canal"). En iniciado, contactados hace ≥1 semana y sin
+  // seguimiento por Instagram — mismo criterio que la pestaña Iniciado del pipeline.
   const segSet = new Set((fupRes.data || []).map((r) => (r as { lead_id: number }).lead_id))
   const seguimientosVencidos = (vencidosCandRes.data || []).filter((l) => !segSet.has((l as { id: number }).id)).length
 

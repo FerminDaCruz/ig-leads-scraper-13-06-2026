@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Lead } from '@/lib/supabase'
-import { cambiarEtapa, marcarResultado, registrarSeguimiento, cambiarCanal } from '@/lib/pipeline'
+import { cambiarEtapa, marcarResultado, registrarSeguimiento, cambiarCanal, marcarVisto } from '@/lib/pipeline'
 import {
   ETAPAS, ETAPA_LABEL, RESULTADOS, RESULTADO_LABEL, SIGUIENTE,
   FASE_DE_ETAPA, FASE_MAX, CANAL_LABEL, MOTIVOS_CANAL, MOTIVO_CANAL_LABEL,
@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight, FiClock, FiCheckCircle, FiAlertTriangle, FiSlash, FiXOctagon, FiThumbsDown, FiRotateCcw, FiEdit3, FiX, FiSend, FiPhoneCall, FiInstagram, FiCheck, FiAlertCircle } from 'react-icons/fi'
+import { FiMoreVertical, FiMapPin, FiPhone, FiGlobe, FiMessageCircle, FiChevronRight, FiClock, FiCheckCircle, FiAlertTriangle, FiSlash, FiXOctagon, FiThumbsDown, FiRotateCcw, FiEdit3, FiX, FiSend, FiPhoneCall, FiInstagram, FiCheck, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi'
 import type { Resultado } from '@/lib/pipeline-stages'
 
 // yyyy-mm-dd en horario de Argentina (para <input type="date">).
@@ -62,12 +62,16 @@ interface Props {
   faseUsados: number
   /** En la pestaña Todos se mezclan etapas: la tarjeta necesita decir en cuál está. */
   mostrarEtapa?: boolean
+  /** Si el mensaje fue visto (apertura). Es una característica, no una etapa. */
+  visto?: boolean
+  /** Muestra el toggle de "Visto" en las acciones (tab Iniciado). */
+  mostrarVisto?: boolean
   /** Query de la vista actual del pipeline: el detalle la usa para volver acá. */
   volverA?: string
   seg?: SegEstado
 }
 
-export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, faseUsados, mostrarEtapa, volverA, seg }: Props) {
+export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, faseUsados, mostrarEtapa, visto, mostrarVisto, volverA, seg }: Props) {
   const [isPending, startTransition] = useTransition()
   const [anotando, setAnotando] = useState(false)
   const [fecha, setFecha] = useState(hoyInput)
@@ -155,6 +159,11 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
               {CANAL_LABEL[canal]}
             </span>
           )}
+          {visto && (
+            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[0.65rem] font-semibold bg-sky-500/12 text-sky-700 dark:text-sky-400">
+              <FiEye size={10} /> Visto
+            </span>
+          )}
           {flagged && (() => {
             const RIcon = RES_ICON[lead.resultado!]
             return (
@@ -235,6 +244,21 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
             <FiPhoneCall size={13} /> Llamar
           </a>
         )}
+        {mostrarVisto && (
+          <button
+            onClick={() => startTransition(() => marcarVisto(lead.id, !visto))}
+            disabled={isPending}
+            title={visto ? 'Quitar visto (no vio el mensaje)' : 'Marcar visto (abrió el mensaje)'}
+            aria-pressed={visto}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition active:scale-[0.97] disabled:opacity-50 ${
+              visto
+                ? 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-400'
+                : 'border-border text-muted hover:text-foreground hover:bg-foreground/5'
+            }`}
+          >
+            {visto ? <FiEye size={13} /> : <FiEyeOff size={13} />} Visto
+          </button>
+        )}
         {next && (
           <button
             onClick={() => startTransition(() => cambiarEtapa(lead.id, next.etapa))}
@@ -279,6 +303,15 @@ export function PipelineCard({ lead, ownerNumero, ownerCount, followupCount, fas
                 {ETAPA_LABEL[e]}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Apertura</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => startTransition(() => marcarVisto(lead.id, !visto))}
+              className={visto ? 'font-semibold text-foreground' : ''}
+            >
+              {visto ? <FiEyeOff size={14} className="mr-2" /> : <FiEye size={14} className="mr-2" />}
+              {visto ? 'Quitar visto' : 'Marcar visto'}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Resultado del contacto</DropdownMenuLabel>
             {RESULTADOS.map((r) => {

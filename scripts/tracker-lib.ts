@@ -22,7 +22,8 @@ export interface TrackerConfig {
   unmatchedOut: string  // ruta donde dejar los @ sin match
 }
 
-const STAGES = ['lead', 'iniciado', 'visto', 'interesado', 'calendly_enviado', 'agendado', 'cerrado']
+// 'visto' NO es etapa: la apertura se guarda en visto_at (columna aparte).
+const STAGES = ['lead', 'iniciado', 'interesado', 'calendly_enviado', 'agendado', 'cerrado']
 const rank = (s: string) => Math.max(0, STAGES.indexOf(s))
 const BLOCKS = ['Prospecto', 'Iniciado', 'Interesado', 'Calendly', 'Agendado'] as const
 
@@ -63,7 +64,7 @@ interface Agg {
   nombreDueno: string | null
   tieneWeb: boolean | null
   stages: Set<string>
-  dates: { contacted: string | null; interesado: string | null; calendly: string | null; agendado: string | null }
+  dates: { contacted: string | null; visto: string | null; interesado: string | null; calendly: string | null; agendado: string | null }
   notes: Record<string, string[]>
   followups: { fase: string; indice: number; mensaje: string }[]
 }
@@ -135,7 +136,7 @@ function emptyAgg(username: string): Agg {
     nombreDueno: null,
     tieneWeb: null,
     stages: new Set(),
-    dates: { contacted: null, interesado: null, calendly: null, agendado: null },
+    dates: { contacted: null, visto: null, interesado: null, calendly: null, agendado: null },
     notes: { Prospecto: [], Iniciado: [], Interesado: [], Calendly: [], Agendado: [] },
     followups: [],
   }
@@ -165,15 +166,17 @@ function buildAggs(rows: string[][], hIdx: number, monthNum: string): Map<string
       if (w !== null) a.tieneWeb = w
       if (cell(r, C.prosp.notas)) a.notes.Prospecto.push(cell(r, C.prosp.notas))
     }
-    // Iniciado → 'iniciado' (+ 'visto' si FTF Visto = Sí)
+    // Iniciado → 'iniciado' (+ visto_at si FTF Visto = Sí; visto no es etapa)
     const ui = uname(cell(r, C.ini.link))
     if (ui) {
       const a = get(ui)
       a.stages.add('iniciado')
       if (!a.nombreEmpresa && C.ini.link - 1 >= 0 && cell(r, C.ini.link - 1)) a.nombreEmpresa = cell(r, C.ini.link - 1)
       const visto = siNo(cell(r, C.ini.visto)) === true
-      if (visto) a.stages.add('visto')
-      a.dates.contacted = earliest(a.dates.contacted, dayToIso(cell(r, C.ini.fecha), monthNum))
+      const contactado = dayToIso(cell(r, C.ini.fecha), monthNum)
+      // No hay fecha propia de apertura en el tracker: se usa la de contacto.
+      if (visto) a.dates.visto = earliest(a.dates.visto, contactado)
+      a.dates.contacted = earliest(a.dates.contacted, contactado)
       const msg = visto ? cell(r, C.ini.fupSi) : cell(r, C.ini.fupNo)
       if (msg) a.followups.push({ fase: 'iniciado', indice: 1, mensaje: msg })
       if (cell(r, C.ini.notas)) a.notes.Iniciado.push(cell(r, C.ini.notas))
@@ -301,6 +304,7 @@ export async function runTracker(cfg: TrackerConfig) {
     const update: any = {
       etapa: STAGES[newRank],
       contacted_at: earliest(lead.contacted_at, agg.dates.contacted),
+      visto_at: earliest(lead.visto_at, agg.dates.visto),
       interesado_at: earliest(lead.interesado_at, agg.dates.interesado),
       calendly_at: earliest(lead.calendly_at, agg.dates.calendly),
       agendado_at: earliest(lead.agendado_at, agg.dates.agendado),

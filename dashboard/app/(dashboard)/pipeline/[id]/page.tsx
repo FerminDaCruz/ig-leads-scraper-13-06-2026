@@ -19,7 +19,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 // De dónde vino el usuario (?from=etapa%3Diniciado%26seg%3Dsin). Viene de la URL,
 // así que se reconstruye clave por clave en vez de pegarlo tal cual.
-const FROM_KEYS = ['etapa', 'q', 'web', 'seg', 'res'] as const
+const FROM_KEYS = ['etapa', 'q', 'web', 'seg', 'res', 'vis'] as const
 function volverHref(from?: string) {
   if (!from) return '/pipeline'
   const src = new URLSearchParams(from)

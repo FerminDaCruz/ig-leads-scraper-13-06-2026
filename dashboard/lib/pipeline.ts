@@ -19,15 +19,49 @@ export async function cambiarEtapa(id: number, etapa: string) {
   const supabase = getSupabase()
   const update: Record<string, unknown> = { etapa }
   const col = ETAPA_FECHA[etapa]
-  if (col) {
-    // Setea la fecha de la etapa solo si todavía no tiene una.
-    const { data } = await supabase.from('leads').select(col).eq('id', id).single()
-    const row = data as unknown as Record<string, unknown> | null
-    if (row && !row[col]) update[col] = new Date().toISOString()
-  }
+  // Traemos la fecha de la etapa (si tiene) + visto_at en una sola consulta.
+  const sel = col ? `${col}, visto_at` : 'visto_at'
+  const { data } = await supabase.from('leads').select(sel).eq('id', id).single()
+  const row = data as unknown as Record<string, unknown> | null
+  // Setea la fecha de la etapa solo si todavía no tiene una.
+  if (col && row && !row[col]) update[col] = new Date().toISOString()
   // De 'iniciado' en adelante el lead está contactado (sincroniza el booleano
   // que usan Reportes/Métricas/Historial).
   if (ETAPAS.indexOf(etapa) >= ETAPAS.indexOf('iniciado')) update.contactado = true
+  // Llegar a 'interesado' o más allá implica que el mensaje fue visto: si todavía
+  // no está marcada la apertura, se completa (mantiene la métrica OP coherente).
+  if (ETAPAS.indexOf(etapa) >= ETAPAS.indexOf('interesado') && row && !row.visto_at) {
+    update.visto_at = new Date().toISOString()
+  }
+  await supabase.from('leads').update(update).eq('id', id)
+  revalidar(id)
+}
+
+// ── Visto (característica, no etapa) ───────────────────────────────────────────
+// Marca/limpia la apertura del mensaje. Ver un DM sin responder NO es un avance:
+// solo setea visto_at. Marcarlo implica que hubo contacto, así que si el lead
+// todavía no llegó a 'iniciado', lo promueve.
+export async function marcarVisto(id: number, visto: boolean) {
+  const supabase = getSupabase()
+  if (!visto) {
+    await supabase.from('leads').update({ visto_at: null }).eq('id', id)
+    revalidar(id)
+    return
+  }
+  const { data } = await supabase
+    .from('leads')
+    .select('etapa, visto_at, contacted_at')
+    .eq('id', id)
+    .single()
+  const row = data as { etapa: string; visto_at: string | null; contacted_at: string | null } | null
+  const update: Record<string, unknown> = {
+    visto_at: row?.visto_at || new Date().toISOString(),
+  }
+  if (row && ETAPAS.indexOf(row.etapa as Etapa) < ETAPAS.indexOf('iniciado')) {
+    update.etapa = 'iniciado'
+    update.contactado = true
+    if (!row.contacted_at) update.contacted_at = new Date().toISOString()
+  }
   await supabase.from('leads').update(update).eq('id', id)
   revalidar(id)
 }

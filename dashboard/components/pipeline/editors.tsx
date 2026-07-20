@@ -9,14 +9,14 @@ import {
   type Etapa, type Fase, type Resultado, type Canal, type MotivoCanal,
 } from '@/lib/pipeline-stages'
 import {
-  cambiarEtapa, actualizarFecha, actualizarCampos, marcarResultado, cambiarCanal,
+  cambiarEtapa, actualizarFecha, actualizarCampos, marcarResultado, marcarVisto, cambiarCanal,
   agregarOwner, actualizarOwner, eliminarOwner,
   registrarSeguimiento, actualizarFollowup, eliminarFollowup,
 } from '@/lib/pipeline'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FiChevronDown, FiPlus, FiTrash2, FiSlash, FiXOctagon, FiThumbsDown, FiCheck, FiX } from 'react-icons/fi'
+import { FiChevronDown, FiPlus, FiTrash2, FiSlash, FiXOctagon, FiThumbsDown, FiCheck, FiX, FiEye, FiEyeOff } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
   no_interesado: FiThumbsDown,
@@ -132,15 +132,26 @@ export function EtapaControl({ lead }: { lead: Lead }) {
 
   const [etapa, setEtapa] = useState(lead.etapa as Etapa)
   const [resultado, setResultado] = useState<Resultado | null>(lead.resultado)
+  // Visto es una característica (apertura), no una etapa: toggle + su fecha.
+  const [visto, setVisto] = useState(!!lead.visto_at)
+  const [vistoFecha, setVistoFecha] = useState(toDateInput(lead.visto_at))
   const [fechas, setFechas] = useState<Record<string, string>>(fechasIniciales)
 
   const fechasBase = fechasIniciales()
   const fechasSucias = Object.keys(fechasBase).filter((c) => fechas[c] !== fechasBase[c])
-  const sucio = etapa !== lead.etapa || resultado !== lead.resultado || fechasSucias.length > 0
+  const vistoFechaSucia = visto && vistoFecha !== toDateInput(lead.visto_at)
+  const sucio =
+    etapa !== lead.etapa ||
+    resultado !== lead.resultado ||
+    visto !== !!lead.visto_at ||
+    vistoFechaSucia ||
+    fechasSucias.length > 0
 
   const descartar = () => {
     setEtapa(lead.etapa as Etapa)
     setResultado(lead.resultado)
+    setVisto(!!lead.visto_at)
+    setVistoFecha(toDateInput(lead.visto_at))
     setFechas(fechasIniciales())
   }
 
@@ -150,6 +161,9 @@ export function EtapaControl({ lead }: { lead: Lead }) {
       // explícitas de abajo tienen que poder pisarla.
       if (etapa !== lead.etapa) await cambiarEtapa(lead.id, etapa)
       if (resultado !== lead.resultado) await marcarResultado(lead.id, resultado)
+      // Visto: marcar/limpiar la apertura; luego la fecha explícita pisa el "ahora".
+      if (visto !== !!lead.visto_at) await marcarVisto(lead.id, visto)
+      if (vistoFechaSucia) await actualizarFecha(lead.id, 'visto_at', fromDateInput(vistoFecha))
       for (const col of fechasSucias) await actualizarFecha(lead.id, col, fromDateInput(fechas[col]))
     })
 
@@ -216,6 +230,43 @@ export function EtapaControl({ lead }: { lead: Lead }) {
             Activo
           </button>
         </div>
+      </div>
+
+      {/* Visto: apertura del mensaje. Característica, no etapa: no es un avance. */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted">Visto</span>
+        <div className="inline-flex rounded-xl border border-border overflow-hidden">
+          {([true, false] as const).map((v) => {
+            const active = visto === v
+            const Icon = v ? FiEye : FiEyeOff
+            return (
+              <button
+                key={String(v)}
+                type="button"
+                disabled={isPending}
+                onClick={() => setVisto(v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed ${
+                  active
+                    ? v
+                      ? 'bg-sky-500 text-white font-semibold'
+                      : 'bg-foreground text-background font-semibold'
+                    : 'text-muted enabled:hover:bg-foreground/5'
+                }`}
+              >
+                <Icon size={13} /> {v ? 'Sí' : 'No'}
+              </button>
+            )
+          })}
+        </div>
+        {visto && (
+          <input
+            type="date"
+            value={vistoFecha}
+            disabled={isPending}
+            onChange={(e) => setVistoFecha(e.target.value)}
+            className={dateCls}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">

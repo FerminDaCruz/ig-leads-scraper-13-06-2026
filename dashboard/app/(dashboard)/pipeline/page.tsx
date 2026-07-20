@@ -8,7 +8,7 @@ import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
 import { FilterLink, PendingDim } from '@/components/NavPending'
 import { CalificarButtons } from '@/components/LeadActions'
 import { Badge } from '@/components/ui/badge'
-import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck, FiAlertCircle, FiSend, FiPhoneCall, FiUsers } from 'react-icons/fi'
+import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck, FiAlertCircle, FiSend, FiPhoneCall, FiUsers, FiEye, FiEyeOff } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
   no_interesado: FiThumbsDown,
@@ -48,9 +48,9 @@ async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
   else if (key !== 'todos') {
     q = q.eq('etapa', key)
     if (key === 'lead') q = q.eq('calificado', true)
-    // Iniciado/Visto muestran los activos de Instagram por defecto: el contador acompaña.
-    // Los mudados a WhatsApp/llamada se cuentan en "Otro canal".
-    if (key === 'iniciado' || key === 'visto') q = q.is('resultado', null).eq('canal', 'instagram')
+    // Iniciado muestra los activos de Instagram por defecto (vistos y no vistos
+    // juntos: es la cola de seguimiento). Los mudados a WhatsApp/llamada van a "Otro canal".
+    if (key === 'iniciado') q = q.is('resultado', null).eq('canal', 'instagram')
   }
   const { count } = await q
   return count || 0
@@ -59,7 +59,7 @@ async function contar(supabase: ReturnType<typeof getSupabase>, key: TabKey) {
 export default async function PipelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string; res?: string; sub?: string }>
+  searchParams: Promise<{ etapa?: string; q?: string; web?: string; seg?: string; res?: string; sub?: string; vis?: string }>
 }) {
   const params = await searchParams
   const tab: TabKey = params.etapa && isTab(params.etapa) ? params.etapa : 'sin_calificar'
@@ -68,13 +68,15 @@ export default async function PipelinePage({
   const sub: Sub | null = params.sub && isSub(params.sub) ? params.sub : null
   // Filtro con/sin web en la etapa Lead (por defecto: sin web).
   const web: 'con' | 'sin' = params.web === 'con' ? 'con' : 'sin'
-  // Filtro por resultado del contacto en Iniciado/Visto (por defecto: activos).
-  const segTabs = tab === 'iniciado' || tab === 'visto'
+  // Filtro por resultado del contacto en Iniciado (por defecto: activos).
+  const segTabs = tab === 'iniciado'
   const res: 'activos' | Resultado =
     params.res === 'no_interesado' || params.res === 'bloqueado' ? params.res : 'activos'
   const verActivos = res === 'activos'
   // Filtro con/sin seguimiento (solo aplica a los activos).
   const seg: 'con' | 'sin' = params.seg === 'con' ? 'con' : 'sin'
+  // Filtro por apertura (visto / no visto). 'todos' = ambos (por defecto).
+  const vis: 'todos' | 'si' | 'no' = params.vis === 'si' || params.vis === 'no' ? params.vis : 'todos'
   const supabase = getSupabase()
 
   const counts = await Promise.all(TABS.map((t) => contar(supabase, t.key)))
@@ -108,6 +110,25 @@ export default async function PipelinePage({
     segCount = { con, sin: Math.max(countByTab[tab] - con, 0) }
   }
 
+  // Vistos / no vistos DENTRO de la selección de seguimiento actual: si estás en
+  // "sin seguimiento", las chips cuentan solo entre los sin seguimiento (y viceversa).
+  let vistoCount = { si: 0, no: 0 }
+  if (segTabs && verActivos) {
+    let vq = supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('etapa', tab)
+      .is('resultado', null)
+      .eq('canal', 'instagram')
+      .not('visto_at', 'is', null)
+    if (seg === 'con') vq = vq.in('id', segIds.length ? segIds : [-1])
+    else if (segIds.length) vq = vq.not('id', 'in', `(${segIds.join(',')})`)
+    const { count } = await vq
+    const si = count || 0
+    // El total de la selección actual es segCount[seg]: el resto no vio el mensaje.
+    vistoCount = { si, no: Math.max(segCount[seg] - si, 0) }
+  }
+
   // Triage (sin calificar / lead) respeta las ubicaciones ocultas por defecto.
   const triage = tab === 'sin_calificar' || tab === 'lead'
   const hidden = triage ? await getHiddenLocations() : []
@@ -137,6 +158,12 @@ export default async function PipelinePage({
   if (segTabs && verActivos) {
     if (seg === 'con') query = query.in('id', segIds.length ? segIds : [-1])
     else if (segIds.length) query = query.not('id', 'in', `(${segIds.join(',')})`)
+  }
+
+  // Filtro por apertura (visto / no visto). 'todos' no filtra.
+  if (segTabs && verActivos) {
+    if (vis === 'si') query = query.not('visto_at', 'is', null)
+    else if (vis === 'no') query = query.is('visto_at', null)
   }
 
   // Búsqueda por nombre de empresa o @usuario.
@@ -207,7 +234,10 @@ export default async function PipelinePage({
     if (tab === 'lead') p.set('web', web)
     if (segTabs) {
       p.set('res', res)
-      if (verActivos) p.set('seg', seg)
+      if (verActivos) {
+        p.set('seg', seg)
+        if (vis !== 'todos') p.set('vis', vis)
+      }
     }
     return p.toString()
   })()
@@ -333,7 +363,8 @@ export default async function PipelinePage({
         <div className="flex gap-2 mb-4">
           {(['sin', 'con'] as const).map((s) => {
             const active = seg === s
-            const qs = new URLSearchParams({ etapa: tab, seg: s })
+            // Preserva el filtro de apertura al cambiar de seguimiento.
+            const qs = new URLSearchParams({ etapa: tab, seg: s, vis })
             if (q) qs.set('q', q)
             return (
               <FilterLink
@@ -350,6 +381,39 @@ export default async function PipelinePage({
                 <span className={`text-xs tnum font-semibold ${active ? 'text-background/70' : 'text-muted'}`}>
                   {segCount[s]}
                 </span>
+              </FilterLink>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Filtro por apertura: visto es una característica, no una etapa. Por defecto
+          se ven todos juntos (la cola de seguimiento no se parte). */}
+      {segTabs && verActivos && (
+        <div className="flex gap-2 mb-4">
+          {(['todos', 'si', 'no'] as const).map((v) => {
+            const active = vis === v
+            const qs = new URLSearchParams({ etapa: tab, res, seg, vis: v })
+            if (q) qs.set('q', q)
+            const Icon = v === 'si' ? FiEye : v === 'no' ? FiEyeOff : FiUsers
+            const label = v === 'si' ? 'Visto' : v === 'no' ? 'No visto' : 'Todos'
+            return (
+              <FilterLink
+                key={v}
+                href={`/pipeline?${qs.toString()}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-foreground text-background shadow-sm'
+                    : 'bg-card/60 backdrop-blur-sm text-muted border border-border hover:bg-foreground/5 hover:text-foreground'
+                }`}
+              >
+                <Icon size={13} />
+                {label}
+                {v !== 'todos' && (
+                  <span className={`text-xs tnum font-semibold ${active ? 'text-background/70' : 'text-muted'}`}>
+                    {v === 'si' ? vistoCount.si : vistoCount.no}
+                  </span>
+                )}
               </FilterLink>
             )
           })}
@@ -421,6 +485,8 @@ export default async function PipelinePage({
                     ownerNumero={numero}
                     ownerCount={owners.length}
                     mostrarEtapa={tab === 'todos' || tab === 'otro_canal'}
+                    visto={!!lead.visto_at}
+                    mostrarVisto={segTabs && verActivos}
                     volverA={volverA}
                     followupCount={fupByLead.get(lead.id) || 0}
                     faseUsados={(() => {
