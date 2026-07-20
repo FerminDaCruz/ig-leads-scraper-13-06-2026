@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getSupabase } from '@/lib/supabase'
-import { ETAPAS, DEFAULT_KPIS, KPI_ETAPAS, kpiEsNumero } from '@/lib/pipeline-stages'
+import { DEFAULT_KPIS, KPI_ETAPAS, kpiEsNumero } from '@/lib/pipeline-stages'
 import { CopyReport } from '@/components/CopyReport'
 import { KpiConfig } from '@/components/metricas/KpiConfig'
 import { PeriodoPicker, type Semana } from '@/components/metricas/PeriodoPicker'
@@ -73,9 +73,6 @@ function weekRangeFromMonday(monday: string) {
   const startMs = new Date(`${monday}T00:00:00-03:00`).getTime()
   return { start: new Date(startMs).toISOString(), end: new Date(startMs + 7 * 86400000).toISOString() }
 }
-
-// Etapas >= la dada (para contar "alcanzó esta etapa" por etapa actual)
-const reachedFrom = (etapa: string) => ETAPAS.slice((ETAPAS as readonly string[]).indexOf(etapa))
 
 // Embudo con los nombres de cada métrica (A es la base = iniciados).
 const FUNNEL = [
@@ -169,13 +166,19 @@ export default async function MetricasPage({
     }
   }
   // Conteos del funnel (por fecha en el mes; por etapa alcanzada en "Todos").
+  // Embudo por COHORTE: la base son los iniciados del período (por contacted_at) y
+  // cada paso mide, SOBRE ESOS MISMOS leads, cuántos alcanzaron su señal (su fecha).
+  // Así "OP = % sobre A" habla siempre de los que contacté en el período, no de
+  // aperturas sueltas que cayeron en el mes desde envíos de meses anteriores.
   const funnelCounts = await Promise.all(
     FUNNEL.map(async (s) => {
       let q = supabase.from('leads').select('id', { count: 'exact', head: true })
-      if (range) q = q.gte(s.dateCol, range.start).lt(s.dateCol, range.end)
-      // 'visto' ya no es etapa: la apertura (OP) se cuenta por visto_at.
-      else if (s.code === 'OP') q = q.not('visto_at', 'is', null)
-      else q = q.in('etapa', reachedFrom(s.etapa))
+      // Cohorte base: contactados en el período (o todos los contactados en "Todos").
+      if (range) q = q.gte('contacted_at', range.start).lt('contacted_at', range.end)
+      else q = q.not('contacted_at', 'is', null)
+      // A es la base; el resto exige haber alcanzado la señal del paso (visto_at,
+      // interesado_at, etc.), sin importar en qué mes ocurrió esa señal.
+      if (s.code !== 'A') q = q.not(s.dateCol, 'is', null)
       const { count } = await q
       return count || 0
     })
