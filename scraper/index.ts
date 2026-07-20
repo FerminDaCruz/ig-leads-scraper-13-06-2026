@@ -1,73 +1,50 @@
 import "dotenv/config";
-import { createBrowser, randomDelay } from "./browser";
-import { searchDDG } from "./search";
+import { randomDelay } from "./util";
+import { searchGoogle, SearchBlockedError } from "./search";
 import { getNextSearchPairs, saveSearchResults } from "./db";
 
 const MIN_NEW_LEADS = 50; // objetivo diario de leads nuevos
-const PAGES_PER_SEARCH = 3; // páginas de resultados por búsqueda
+const RESULTS_PER_SEARCH = 20; // resultados por búsqueda (2 páginas de la API de Google)
 const BATCH_SIZE = 5; // pares por lote (para no recargar DB en cada búsqueda)
-const MAX_SEARCHES = 20; // tope de seguridad (20 búsquedas × 3 páginas = 60 páginas máx.)
+const MAX_SEARCHES = 20; // tope de seguridad (también cuida la cuota diaria de Google)
 
 async function main() {
-  console.log("🚀 Iniciando scraper de leads de Instagram");
+  console.log("🚀 Iniciando scraper de leads de Instagram (Google Search API)");
   console.log(`   Fecha: ${new Date().toLocaleString("es-AR")}`);
   console.log(
-    `   Objetivo: ${MIN_NEW_LEADS} leads nuevos · ${PAGES_PER_SEARCH} páginas/búsqueda · máx. ${MAX_SEARCHES} búsquedas\n`,
+    `   Objetivo: ${MIN_NEW_LEADS} leads nuevos · ${RESULTS_PER_SEARCH} resultados/búsqueda · máx. ${MAX_SEARCHES} búsquedas\n`,
   );
 
   let totalNewLeads = 0;
   let totalSearches = 0;
 
-  const { browser, context } = await createBrowser();
+  while (totalNewLeads < MIN_NEW_LEADS && totalSearches < MAX_SEARCHES) {
+    const pairs = await getNextSearchPairs(BATCH_SIZE);
 
-  try {
-    while (totalNewLeads < MIN_NEW_LEADS && totalSearches < MAX_SEARCHES) {
-      const pairs = await getNextSearchPairs(BATCH_SIZE);
-
-      if (pairs.length === 0) {
-        console.log("No hay más combinaciones disponibles.");
-        break;
-      }
-
-      for (const { niche, location } of pairs) {
-        if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES)
-          break;
-
-        const query = `site:instagram.com "${niche}" "${location}" -inurl:/p/ -inurl:/reel/ -inurl:/tv/`;
-        console.log(
-          `[${totalSearches + 1}/${MAX_SEARCHES}] ${niche} | ${location}`,
-        );
-
-        const profiles = await searchDDG(
-          context,
-          niche,
-          location,
-          PAGES_PER_SEARCH,
-        );
-        const newLeads = await saveSearchResults(
-          profiles,
-          niche,
-          location,
-          query,
-        );
-
-        totalNewLeads += newLeads;
-        totalSearches++;
-
-        console.log(`  Acumulados: ${totalNewLeads}/${MIN_NEW_LEADS} nuevos\n`);
-
-        if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES)
-          break;
-
-        const wait = Math.floor(Math.random() * 8000) + 10000;
-        console.log(
-          `  Esperando ${Math.round(wait / 1000)}s antes de la próxima búsqueda...\n`,
-        );
-        await randomDelay(wait, wait + 2000);
-      }
+    if (pairs.length === 0) {
+      console.log("No hay más combinaciones disponibles.");
+      break;
     }
-  } finally {
-    await browser.close();
+
+    for (const { niche, location } of pairs) {
+      if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES) break;
+
+      const query = `"${niche}" "${location}" site:instagram.com`;
+      console.log(`[${totalSearches + 1}/${MAX_SEARCHES}] ${niche} | ${location}`);
+
+      const profiles = await searchGoogle(niche, location, RESULTS_PER_SEARCH);
+      const newLeads = await saveSearchResults(profiles, niche, location, query);
+
+      totalNewLeads += newLeads ?? 0;
+      totalSearches++;
+
+      console.log(`  Acumulados: ${totalNewLeads}/${MIN_NEW_LEADS} nuevos\n`);
+
+      if (totalNewLeads >= MIN_NEW_LEADS || totalSearches >= MAX_SEARCHES) break;
+
+      // Pausa corta entre búsquedas (la API no necesita el anti-bot de antes).
+      await randomDelay(1000, 2500);
+    }
   }
 
   if (totalNewLeads >= MIN_NEW_LEADS) {
@@ -83,6 +60,11 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Error fatal:", err);
+  if (err instanceof SearchBlockedError) {
+    // Bloqueo/cuota de Google: el step debe fallar en ROJO, no pasar como si nada.
+    console.error(`\n⛔ Búsqueda bloqueada: ${err.message}`);
+  } else {
+    console.error("Error fatal:", err);
+  }
   process.exit(1);
 });
