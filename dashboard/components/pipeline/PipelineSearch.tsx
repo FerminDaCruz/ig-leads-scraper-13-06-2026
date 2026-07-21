@@ -21,8 +21,14 @@ export function PipelineSearch() {
     }
     const t = setTimeout(() => {
       const params = new URLSearchParams(Array.from(searchParams.entries()))
-      if (value.trim()) params.set('q', value.trim())
-      else params.delete('q')
+      if (value.trim()) {
+        params.set('q', value.trim())
+        // Buscar mira todas las etapas: si no, un lead que ya avanzó no aparece
+        // aunque coincida. Al escribir, la pestaña salta a "Todos".
+        params.set('etapa', 'todos')
+      } else {
+        params.delete('q')
+      }
       navigate(`${pathname}?${params.toString()}`)
     }, 300)
     return () => clearTimeout(t)

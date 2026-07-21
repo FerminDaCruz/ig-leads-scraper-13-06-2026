@@ -168,8 +168,11 @@ export default async function PipelinePage({
 
   // Búsqueda por nombre de empresa o @usuario.
   if (q) {
-    const safe = q.replace(/[%,()]/g, ' ')
-    query = query.or(`username.ilike.%${safe}%,nombre_empresa.ilike.%${safe}%`)
+    const safe = q.replace(/[%,()]/g, ' ').trim()
+    // En @usuario no hay espacios: se escriben como . o _ (o nada). Tratamos cada
+    // espacio como comodín para que "cabaña ejemplo" matchee "cabaña_ejemplo".
+    const userPat = safe.replace(/\s+/g, '%')
+    query = query.or(`username.ilike.%${userPat}%,nombre_empresa.ilike.%${safe}%`)
   }
 
   const dateCol =
