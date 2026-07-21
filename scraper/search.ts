@@ -1,6 +1,7 @@
-import { randomDelay } from './util'
+// Fuente de búsqueda: Serper.dev (API de resultados de Google, JSON).
+// Tier gratis: ~2.500 búsquedas de regalo al registrarse, sin tarjeta.
 
-// Error que corta el run entero: cuota agotada o IP/He key limitada por Google.
+// Error que corta el run entero: key inválida, créditos agotados o rate-limit.
 // Se propaga hasta el catch de index.ts para que el step de GitHub falle en ROJO
 // (antes DDG devolvía un CAPTCHA y el scraper lo registraba como "0" en silencio).
 export class SearchBlockedError extends Error {}
@@ -20,71 +21,60 @@ function parseInstagramUrl(rawUrl: string): { url: string; username: string } | 
   return { username, url: `https://www.instagram.com/${username}/` }
 }
 
-const ENDPOINT = 'https://www.googleapis.com/customsearch/v1'
+const ENDPOINT = 'https://google.serper.dev/search'
 
-// Busca perfiles de Instagram con la API de Google Programmable Search (JSON).
-// Devuelve la misma forma que la versión vieja: { url, username }[].
-// maxResults se redondea a múltiplos de 10 (Google devuelve 10 por llamada).
-export async function searchGoogle(
+// Busca perfiles de Instagram. Devuelve { url, username }[].
+// Una sola llamada por búsqueda (1 crédito): pide hasta `maxResults` resultados.
+export async function searchWeb(
   niche: string,
   location: string,
   maxResults = 20
 ): Promise<{ url: string; username: string }[]> {
-  const key = process.env.GOOGLE_API_KEY
-  const cx = process.env.GOOGLE_CSE_ID
-  if (!key || !cx) {
+  const key = process.env.SERPER_API_KEY
+  if (!key) {
     throw new SearchBlockedError(
-      'Faltan GOOGLE_API_KEY / GOOGLE_CSE_ID en el entorno (revisá .env o los secrets de GitHub)'
+      'Falta SERPER_API_KEY en el entorno (revisá .env o los secrets de GitHub)'
     )
   }
 
-  // El filtrado de /p/, /reel/, /tv/ lo hace parseInstagramUrl (esos "usuarios"
-  // están en SKIP_USERNAMES), así que la query no necesita los -inurl:.
-  const query = `"${niche}" "${location}" site:instagram.com`
-
-  const results: { url: string; username: string }[] = []
-  const seen = new Set<string>()
+  // El tier gratis de Serper NO permite operadores (site:, comillas exactas, etc.):
+  // devuelve "Query pattern not allowed for free accounts". Usamos keywords planas
+  // + la palabra "instagram" para sesgar los resultados a perfiles de IG; el
+  // filtrado a instagram.com y el descarte de /p/, /reel/, /tv/ lo hace
+  // parseInstagramUrl más abajo.
+  const query = `${niche} ${location} instagram`
 
   console.log(`  Buscando: "${niche}" + "${location}"`)
 
-  // Google pagina con `start` (1, 11, 21, ...); tope de la API: start ≤ 91 (100 resultados).
-  for (let start = 1; start <= maxResults && start <= 91; start += 10) {
-    const url =
-      `${ENDPOINT}?key=${key}&cx=${cx}&q=${encodeURIComponent(query)}` +
-      `&num=10&start=${start}&hl=es&gl=ar`
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: query, num: Math.min(maxResults, 100), gl: 'ar', hl: 'es' }),
+  })
+  const data: any = await res.json().catch(() => ({}))
 
-    const res = await fetch(url)
-    const data: any = await res.json().catch(() => ({}))
-
-    if (!res.ok || data.error) {
-      const msg = data?.error?.message || `HTTP ${res.status}`
-      // 429 = rate limit · 403 = cuota diaria agotada o key restringida.
-      // Son bloqueos reales: cortamos el run para que se note, no seguimos a ciegas.
-      if (res.status === 429 || res.status === 403) {
-        throw new SearchBlockedError(`Google API bloqueó/agotó cuota: ${msg}`)
-      }
-      // Otros errores (400, 500…): esta búsqueda no sirve, pero el run sigue.
-      console.error(`  ✗ Error de la API: ${msg}`)
-      break
+  if (!res.ok) {
+    const msg = data?.message || data?.error || `HTTP ${res.status}`
+    // 401/403 = key inválida · 429 = rate-limit o créditos agotados.
+    // Son bloqueos reales: cortamos el run para que se note.
+    if (res.status === 401 || res.status === 403 || res.status === 429) {
+      throw new SearchBlockedError(`Serper API bloqueó/agotó créditos: ${msg}`)
     }
-
-    const items: any[] = data.items || []
-    let newOnPage = 0
-    for (const it of items) {
-      const profile = parseInstagramUrl(it.link || '')
-      if (!profile || seen.has(profile.username)) continue
-      seen.add(profile.username)
-      results.push(profile)
-      newOnPage++
-    }
-
-    console.log(`  Página ${Math.ceil(start / 10)}: ${newOnPage} perfiles (${items.length} resultados)`)
-
-    // Menos de 10 resultados = no hay más páginas.
-    if (items.length < 10) break
-    await randomDelay(400, 900)
+    // Otros errores (400, 500…): esta búsqueda no sirve, pero el run sigue.
+    console.error(`  ✗ Error de la API: ${msg}`)
+    return []
   }
 
-  console.log(`  ✓ Total: ${results.length} perfiles`)
+  const items: any[] = data?.organic || []
+  const results: { url: string; username: string }[] = []
+  const seen = new Set<string>()
+  for (const it of items) {
+    const profile = parseInstagramUrl(it.link || '')
+    if (!profile || seen.has(profile.username)) continue
+    seen.add(profile.username)
+    results.push(profile)
+  }
+
+  console.log(`  ✓ Total: ${results.length} perfiles (${items.length} resultados)`)
   return results
 }

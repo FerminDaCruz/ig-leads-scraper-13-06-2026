@@ -1,15 +1,15 @@
 import "dotenv/config";
 import { randomDelay } from "./util";
-import { searchGoogle, SearchBlockedError } from "./search";
+import { searchWeb, SearchBlockedError } from "./search";
 import { getNextSearchPairs, saveSearchResults } from "./db";
 
 const MIN_NEW_LEADS = 50; // objetivo diario de leads nuevos
-const RESULTS_PER_SEARCH = 20; // resultados por búsqueda (2 páginas de la API de Google)
+const RESULTS_PER_SEARCH = 20; // resultados por búsqueda (1 llamada = 1 crédito)
 const BATCH_SIZE = 5; // pares por lote (para no recargar DB en cada búsqueda)
-const MAX_SEARCHES = 20; // tope de seguridad (también cuida la cuota diaria de Google)
+const MAX_SEARCHES = 20; // tope de seguridad (también cuida los créditos de la API)
 
 async function main() {
-  console.log("🚀 Iniciando scraper de leads de Instagram (Google Search API)");
+  console.log("🚀 Iniciando scraper de leads de Instagram (Serper / Google)");
   console.log(`   Fecha: ${new Date().toLocaleString("es-AR")}`);
   console.log(
     `   Objetivo: ${MIN_NEW_LEADS} leads nuevos · ${RESULTS_PER_SEARCH} resultados/búsqueda · máx. ${MAX_SEARCHES} búsquedas\n`,
@@ -32,7 +32,7 @@ async function main() {
       const query = `"${niche}" "${location}" site:instagram.com`;
       console.log(`[${totalSearches + 1}/${MAX_SEARCHES}] ${niche} | ${location}`);
 
-      const profiles = await searchGoogle(niche, location, RESULTS_PER_SEARCH);
+      const profiles = await searchWeb(niche, location, RESULTS_PER_SEARCH);
       const newLeads = await saveSearchResults(profiles, niche, location, query);
 
       totalNewLeads += newLeads ?? 0;
