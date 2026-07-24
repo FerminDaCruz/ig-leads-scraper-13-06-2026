@@ -10,8 +10,9 @@ import { join } from 'path'
 const TABLAS = ['leads', 'lead_owners', 'lead_followups'] as const
 const PAGE = 1000
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   realtime: { transport: ws },
+  auth: { persistSession: false },
 })
 
 async function traerTodo(tabla: string) {

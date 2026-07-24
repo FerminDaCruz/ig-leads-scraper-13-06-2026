@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
 export function getSupabase() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
+  // service_role: acceso server-side que ignora RLS. Nunca exponer al navegador.
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false },
+  })
 }
 
 export interface Lead {
