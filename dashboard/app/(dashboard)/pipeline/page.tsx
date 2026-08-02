@@ -3,12 +3,10 @@ export const dynamic = 'force-dynamic'
 import { getSupabase, Lead, Owner } from '@/lib/supabase'
 import { getHiddenLocations } from '@/lib/hidden'
 import { ETAPAS, ETAPA_LABEL, ETAPA_FECHA, FASE_DE_ETAPA, RESULTADOS, RESULTADO_LABEL, type Etapa, type Resultado } from '@/lib/pipeline-stages'
-import { PipelineCard } from '@/components/pipeline/PipelineCard'
+import { PipelineList, type PipelineItem } from '@/components/pipeline/PipelineList'
 import { PipelineSearch } from '@/components/pipeline/PipelineSearch'
 import { FilterLink, PendingDim } from '@/components/NavPending'
-import { CalificarButtons } from '@/components/LeadActions'
-import { Badge } from '@/components/ui/badge'
-import { FiTrendingUp, FiExternalLink, FiMapPin, FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck, FiAlertCircle, FiSend, FiPhoneCall, FiUsers, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FiGlobe, FiSlash, FiClock, FiCheckCircle, FiXOctagon, FiThumbsDown, FiUserCheck, FiAlertCircle, FiSend, FiPhoneCall, FiUsers, FiEye, FiEyeOff } from 'react-icons/fi'
 
 const RES_ICON: Record<Resultado, typeof FiSlash> = {
   no_interesado: FiThumbsDown,
@@ -245,6 +243,25 @@ export default async function PipelinePage({
     return p.toString()
   })()
 
+  // View-models para la lista: el orden y los datos se calculan acá (server) y la
+  // lista cliente los congela para no reordenarse al calificar/mover un lead.
+  const variant = tab === 'sin_calificar' ? 'triage' : 'card'
+  const mostrarEtapa = tab === 'todos' || tab === 'otro_canal'
+  const mostrarVisto = segTabs && verActivos
+  const items: PipelineItem[] = leads.map((lead) => {
+    if (tab === 'sin_calificar') return { lead }
+    const owners = ownersByLead.get(lead.id) || []
+    const f = FASE_DE_ETAPA[lead.etapa as Etapa]
+    return {
+      lead,
+      ownerNumero: owners.find((o) => o.numero)?.numero || null,
+      ownerCount: owners.length,
+      followupCount: fupByLead.get(lead.id) || 0,
+      faseUsados: f ? fupByLeadFase.get(`${lead.id}:${f}:${lead.canal}`) || 0 : 0,
+      seg: mostrarVisto ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined,
+    }
+  })
+
   return (
     <main className="max-w-5xl mx-auto px-4 py-6">
       <div className="mb-4">
@@ -430,80 +447,18 @@ export default async function PipelinePage({
         </p>
       )}
 
-      {/* Lista */}
-      {leads.length === 0 ? (
-        <div className="text-center py-24 text-muted">
-          <FiTrendingUp size={36} className="mx-auto mb-4 opacity-30" />
-          <p className="text-base font-semibold text-navy dark:text-cream/70">
-            {tab === 'sin_calificar' ? 'No hay leads sin calificar' : `Sin leads en «${tabLabel}»`}
-          </p>
-          {tab === 'lead' && (
-            <p className="text-sm mt-1">Calificá leads para que entren al pipeline</p>
-          )}
-          {tab === 'sin_calificar' && (
-            <p className="text-sm mt-1">Corré el scraper para traer nuevos perfiles</p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {leads.map((lead) =>
-            tab === 'sin_calificar' ? (
-              <div
-                key={lead.id}
-                className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card/60 backdrop-blur-sm"
-              >
-                <div className="flex-1 min-w-0">
-                  <a
-                    href={lead.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-semibold text-foreground hover:underline underline-offset-2 decoration-foreground/40"
-                  >
-                    @{lead.username} <FiExternalLink size={12} className="text-muted" />
-                  </a>
-                  <div className="flex items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted flex-wrap">
-                    {lead.ubicaciones && (
-                      <span className="inline-flex items-center gap-1 truncate max-w-[160px]">
-                        <FiMapPin size={11} /> {lead.ubicaciones}
-                      </span>
-                    )}
-                    {lead.nichos && <span className="truncate max-w-[180px]">{lead.nichos}</span>}
-                    <span className="inline-flex items-center gap-1">
-                      <Badge variant="count">{lead.veces_encontrado}</Badge>
-                    </span>
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  <CalificarButtons leadId={lead.id} username={lead.username} />
-                </div>
-              </div>
-            ) : (
-              (() => {
-                const owners = ownersByLead.get(lead.id) || []
-                const numero = owners.find((o) => o.numero)?.numero || null
-                return (
-                  <PipelineCard
-                    key={lead.id}
-                    lead={lead}
-                    ownerNumero={numero}
-                    ownerCount={owners.length}
-                    mostrarEtapa={tab === 'todos' || tab === 'otro_canal'}
-                    visto={!!lead.visto_at}
-                    mostrarVisto={segTabs && verActivos}
-                    volverA={volverA}
-                    followupCount={fupByLead.get(lead.id) || 0}
-                    faseUsados={(() => {
-                      const f = FASE_DE_ETAPA[lead.etapa as Etapa]
-                      return f ? fupByLeadFase.get(`${lead.id}:${f}:${lead.canal}`) || 0 : 0
-                    })()}
-                    seg={segTabs && verActivos ? segEstado(lead.contacted_at, segSet.has(lead.id)) : undefined}
-                  />
-                )
-              })()
-            )
-          )}
-        </div>
-      )}
+      {/* Lista (orden congelado: no se reordena al calificar/mover un lead) */}
+      <PipelineList
+        key={volverA}
+        variant={variant}
+        items={items}
+        liveTotal={countByTab[tab]}
+        mostrarEtapa={mostrarEtapa}
+        mostrarVisto={mostrarVisto}
+        volverA={volverA}
+        tab={tab}
+        tabLabel={tabLabel}
+      />
       </PendingDim>
     </main>
   )
